@@ -85,6 +85,8 @@ fun BadgeView(text: String, color: Color = Color.White) {
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }

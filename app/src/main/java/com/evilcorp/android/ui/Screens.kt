@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -59,6 +60,7 @@ import com.evilcorp.android.model.Area
 import com.evilcorp.android.model.Challenge
 import com.evilcorp.android.model.ChallengeCatalog
 import com.evilcorp.android.model.Difficulty
+import com.evilcorp.android.model.Scoring
 
 private val all = ChallengeCatalog.all
 
@@ -70,60 +72,85 @@ fun HomeScreen(
     onBrowse: () -> Unit,
 ) {
     var showAll by rememberSaveable { mutableStateOf(false) }
+    var selectedArea by rememberSaveable { mutableStateOf<Area?>(null) }
+
     val featured = remember {
-        listOf("sqli", "random", "sslpinning", "intentredirect", "biometric", "webview")
+        listOf("sqli", "sslpinning", "intentredirect", "biometric", "webview", "pathtraversal")
             .mapNotNull(ChallengeCatalog::byId)
     }
-    val gridItems = if (showAll) all else all.take(8)
+    val nextChallenge = remember(store.solved.size) {
+        all.firstOrNull { !store.solved.containsKey(it.id) } ?: all.first()
+    }
+    val filteredGrid = remember(selectedArea, showAll) {
+        val base = if (selectedArea == null) all else all.filter { it.area == selectedArea }
+        if (showAll || selectedArea != null) base else base.take(8)
+    }
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Bg),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { SecurityStatusBar() }
-
         if (store.ctfMode) {
             item { CtfBanner(store) }
         }
 
-        // Hero header matching EvilCorp iOS
+        // Clean Hero Header with ambient radial glow
         item {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(top = 4.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(86.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, Color.White.copy(alpha = 0.25f), CircleShape),
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.evilcorp_logo),
-                        contentDescription = "EvilCorp emblem",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                Canvas(Modifier.size(160.dp)) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Green.copy(alpha = 0.14f), Color.Transparent),
+                            center = Offset(size.width / 2f, size.height / 2f),
+                            radius = size.width / 2f,
+                        )
                     )
                 }
-                Text(
-                    text = "EVILCORP",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.Serif,
-                    letterSpacing = 1.2.sp,
-                    color = Color.White,
-                )
-                Text(
-                    text = "Mobile Security Laboratory",
-                    fontSize = 13.sp,
-                    color = Muted,
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(88.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color.White.copy(alpha = 0.28f), CircleShape),
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.evilcorp_logo),
+                            contentDescription = "EvilCorp emblem",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    Text(
+                        text = "EVILCORP",
+                        fontSize = 27.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Serif,
+                        letterSpacing = 1.5.sp,
+                        color = Color.White,
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "Android Security Laboratory",
+                            fontSize = 13.sp,
+                            color = Muted,
+                        )
+                        BadgeView("v${BuildConfig.VERSION_NAME}", Green)
+                    }
+                }
             }
         }
 
@@ -148,10 +175,10 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f),
                 )
                 StatCardView(
-                    value = "${Area.entries.size}",
-                    label = "Categories",
-                    icon = IconKind.Grid,
-                    iconColor = Color.White,
+                    value = "${store.score()}",
+                    label = "Points",
+                    icon = IconKind.Chart,
+                    iconColor = Accent,
                     modifier = Modifier.weight(1f),
                 )
                 StatCardView(
@@ -164,15 +191,101 @@ fun HomeScreen(
             }
         }
 
-        // START CTF MODE button
-        if (!store.ctfMode) {
-            item {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    AccentButton(
-                        text = "START CTF MODE",
-                        icon = IconKind.Flag,
-                        onClick = { store.startCtf() },
-                    )
+        // Active Mission / Up Next + CTF Mode Action Card
+        item {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpen(nextChallenge.id) },
+                color = Panel,
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+            ) {
+                Column(
+                    modifier = Modifier.padding(15.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(Green)
+                            )
+                            Text(
+                                text = "NEXT TARGET",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                letterSpacing = 0.8.sp,
+                                color = Green,
+                            )
+                        }
+                        if (!store.ctfMode) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Accent.copy(alpha = 0.16f))
+                                    .clickable { store.startCtf() }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            ) {
+                                EvilIcon(IconKind.Flag, tint = Accent, size = 12.dp)
+                                Text(
+                                    "START CTF MODE",
+                                    color = Accent,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Elevated),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            EvilIcon(
+                                kind = challengeIcon(nextChallenge.id, nextChallenge.area),
+                                tint = Color.White,
+                                size = 20.dp,
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = nextChallenge.title,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                            )
+                            Text(
+                                text = "${nextChallenge.cwe} · ${nextChallenge.masvs} · ${nextChallenge.difficulty.points} pts",
+                                fontSize = 11.5.sp,
+                                color = Muted,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        }
+                        BadgeView(nextChallenge.difficulty.label, difficultyColor(nextChallenge.difficulty))
+                        Spacer(Modifier.width(6.dp))
+                        EvilIcon(IconKind.ChevronRight, tint = Muted, size = 16.dp)
+                    }
                 }
             }
         }
@@ -180,12 +293,23 @@ fun HomeScreen(
         // Featured horizontal carousel
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "Featured",
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Featured Labs",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "High-impact scenarios",
+                        fontSize = 12.sp,
+                        color = Muted,
+                    )
+                }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(featured, key = { "feat-${it.id}" }) { c ->
                         FeaturedCardView(
@@ -198,29 +322,52 @@ fun HomeScreen(
             }
         }
 
-        // All Vulnerabilities 2-column grid
+        // All Vulnerabilities header + Category filter chips
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "All Vulnerabilities",
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    "Browse all ›",
-                    fontSize = 13.sp,
-                    color = Accent,
-                    modifier = Modifier.clickable(onClick = onBrowse),
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "All Vulnerabilities",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "Search & filter ›",
+                        fontSize = 13.sp,
+                        color = Accent,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable(onClick = onBrowse),
+                    )
+                }
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterPill(
+                        text = "All (${all.size})",
+                        selected = selectedArea == null,
+                        color = Color.White,
+                        onClick = { selectedArea = null },
+                    )
+                    Area.entries.forEach { a ->
+                        val count = all.count { it.area == a }
+                        FilterPill(
+                            text = "${a.label} ($count)",
+                            selected = selectedArea == a,
+                            color = Color.White,
+                            onClick = { selectedArea = if (selectedArea == a) null else a },
+                        )
+                    }
+                }
             }
         }
 
-        items(gridItems.chunked(2), key = { "grid-${it.first().id}" }) { pair ->
+        items(filteredGrid.chunked(2), key = { "grid-${it.first().id}" }) { pair ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -239,23 +386,27 @@ fun HomeScreen(
             }
         }
 
-        if (!showAll) {
+        if (!showAll && selectedArea == null) {
             item {
-                Box(
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Panel)
-                        .clickable { showAll = true }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
+                        .clickable { showAll = true },
+                    color = Panel,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, CardBorder),
                 ) {
-                    Text(
-                        "Show all ${all.size} challenges",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Box(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Show all ${all.size} challenges",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }
@@ -270,8 +421,7 @@ private fun FeaturedCardView(
 ) {
     Surface(
         modifier = Modifier
-            .width(192.dp)
-            .height(136.dp)
+            .width(224.dp)
             .clickable(onClick = onClick),
         color = Panel,
         shape = RoundedCornerShape(16.dp),
@@ -282,22 +432,33 @@ private fun FeaturedCardView(
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                EvilIcon(
-                    kind = challengeIcon(challenge.id, challenge.area),
-                    tint = if (solved) Green else Color.White,
-                    size = 24.dp,
-                )
-                BadgeView(
-                    text = challenge.difficulty.label,
-                    color = difficultyColor(challenge.difficulty),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background((if (solved) Green else Color.White).copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    EvilIcon(
+                        kind = challengeIcon(challenge.id, challenge.area),
+                        tint = if (solved) Green else Color.White,
+                        size = 19.dp,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    BadgeView("${challenge.difficulty.points} pts", Muted)
+                    BadgeView(
+                        text = challenge.difficulty.label,
+                        color = difficultyColor(challenge.difficulty),
+                    )
+                }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
@@ -310,11 +471,30 @@ private fun FeaturedCardView(
                 )
                 Text(
                     text = challenge.description,
-                    fontSize = 11.5.sp,
-                    lineHeight = 15.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
                     color = Muted,
+                    minLines = 2,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "${challenge.cwe} · ${challenge.masvs}",
+                    fontSize = 10.5.sp,
+                    color = Muted,
+                    fontFamily = FontFamily.Monospace,
+                )
+                Text(
+                    text = if (solved) "Solved ✓" else "Launch ›",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (solved) Green else Accent,
                 )
             }
         }
@@ -339,31 +519,43 @@ private fun GlassCardView(
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                EvilIcon(
-                    kind = challengeIcon(challenge.id, challenge.area),
-                    tint = if (solved) Green else Color.White,
-                    size = 20.dp,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background((if (solved) Green else Color.White).copy(alpha = 0.09f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    EvilIcon(
+                        kind = challengeIcon(challenge.id, challenge.area),
+                        tint = if (solved) Green else Color.White,
+                        size = 17.dp,
+                    )
+                }
                 if (solved) {
                     EvilIcon(IconKind.Check, tint = Green, size = 16.dp)
+                } else {
+                    BadgeView(challenge.cwe, Muted)
                 }
             }
             Text(
                 text = challenge.title,
                 fontSize = 13.5.sp,
+                lineHeight = 17.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
-                maxLines = 1,
+                minLines = 2,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 BadgeView(challenge.difficulty.label, difficultyColor(challenge.difficulty))
                 BadgeView(challenge.masvs, Muted)
             }
@@ -429,6 +621,13 @@ fun ChallengeRow(c: Challenge, solved: Boolean, onOpen: (String) -> Unit) {
                 BadgeView(c.difficulty.label, difficultyColor(c.difficulty))
                 if (solved) {
                     EvilIcon(IconKind.Check, tint = Green, size = 16.dp)
+                } else {
+                    Text(
+                        "${c.difficulty.points} pts",
+                        fontSize = 10.sp,
+                        color = Muted,
+                        fontFamily = FontFamily.Monospace,
+                    )
                 }
             }
         }
@@ -440,6 +639,7 @@ fun LabsScreen(store: ProgressStore, modifier: Modifier, onOpen: (String) -> Uni
     var query by rememberSaveable { mutableStateOf("") }
     var diff by rememberSaveable { mutableStateOf<Difficulty?>(null) }
     var tag by rememberSaveable { mutableStateOf<String?>(null) }
+    var onlyBookmarked by rememberSaveable { mutableStateOf(false) }
 
     val quickTags = remember {
         listOf(
@@ -449,7 +649,8 @@ fun LabsScreen(store: ProgressStore, modifier: Modifier, onOpen: (String) -> Uni
     }
 
     val filtered = all.filter { c ->
-        (diff == null || c.difficulty == diff) &&
+        (!onlyBookmarked || store.isBookmarked(c.id)) &&
+            (diff == null || c.difficulty == diff) &&
             (tag == null || c.cwe == tag || c.masvs == tag) &&
             (query.isBlank() || listOf(c.title, c.description, c.cwe, c.masvs, c.maswe, c.area.label)
                 .any { it.contains(query, ignoreCase = true) })
@@ -460,7 +661,7 @@ fun LabsScreen(store: ProgressStore, modifier: Modifier, onOpen: (String) -> Uni
             .fillMaxSize()
             .background(Bg),
     ) {
-        // Search box matching EvilCorp iOS Labs.jpg
+        // Search box
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -501,14 +702,21 @@ fun LabsScreen(store: ProgressStore, modifier: Modifier, onOpen: (String) -> Uni
             }
         }
 
-        // Difficulty filter pills
+        // Difficulty + Bookmarked filter pills
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            FilterPill("All", selected = diff == null, color = Color.White) { diff = null }
+            FilterPill(
+                "All",
+                selected = diff == null && !onlyBookmarked,
+                color = Color.White,
+            ) {
+                diff = null
+                onlyBookmarked = false
+            }
             Difficulty.entries.forEach { d ->
                 FilterPill(
                     text = d.label,
@@ -517,6 +725,12 @@ fun LabsScreen(store: ProgressStore, modifier: Modifier, onOpen: (String) -> Uni
                     onClick = { diff = if (diff == d) null else d },
                 )
             }
+            FilterPill(
+                text = "Saved",
+                selected = onlyBookmarked,
+                color = Accent,
+                onClick = { onlyBookmarked = !onlyBookmarked },
+            )
         }
 
         // Taxonomy tag pills
@@ -648,6 +862,7 @@ fun ProgressScreen(store: ProgressStore, modifier: Modifier) {
     val solvedCount = store.solved.size
     val totalCount = all.size
     val leftCount = totalCount - solvedCount
+    val maxPoints = Scoring.maxScore(all)
     val pct = if (totalCount > 0) (solvedCount * 100) / totalCount else 0
     val animatedFraction by animateFloatAsState(
         targetValue = if (totalCount > 0) solvedCount.toFloat() / totalCount.toFloat() else 0f,
@@ -673,7 +888,7 @@ fun ProgressScreen(store: ProgressStore, modifier: Modifier) {
             )
         }
 
-        // Circular Progress Ring matching EvilCorp iOS Progress.jpg
+        // Circular Progress Ring
         item {
             Box(
                 modifier = Modifier
@@ -735,14 +950,14 @@ fun ProgressScreen(store: ProgressStore, modifier: Modifier) {
                 ProgressPill(
                     icon = IconKind.Chart,
                     value = "$pct%",
-                    label = "Score (${store.score()} pts)",
+                    label = "${store.score()} / $maxPoints pts",
                     color = Color.White,
                     modifier = Modifier.weight(1f),
                 )
             }
         }
 
-        // Achievements card matching EvilCorp iOS Progress.jpg
+        // Achievements card
         item {
             Card {
                 Text("Achievements", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -860,7 +1075,7 @@ private fun ProgressPill(
         ) {
             EvilIcon(icon, tint = color, size = 20.dp)
             Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
-            Text(label, fontSize = 11.sp, color = Muted)
+            Text(label, fontSize = 11.sp, color = Muted, maxLines = 1)
         }
     }
 }

@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -76,42 +75,115 @@ fun MoreScreen(store: ProgressStore, modifier: Modifier = Modifier) {
 
 @Composable
 private fun MoreMenuView(modifier: Modifier, onNavigate: (MorePage) -> Unit) {
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
-            .padding(horizontal = 16.dp),
+            .background(Bg),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("More", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Operator Toolkit", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.White)
+                Text(
+                    "Live runtime diagnostics, device posture and exploitation reference",
+                    fontSize = 13.sp,
+                    color = Muted,
+                )
+            }
         }
-        MoreMenuRow(IconKind.Terminal, "Console") { onNavigate(MorePage.Console) }
-        HorizontalDivider(color = CardBorder)
-        MoreMenuRow(IconKind.Phone, "Device") { onNavigate(MorePage.Device) }
-        HorizontalDivider(color = CardBorder)
-        MoreMenuRow(IconKind.More, "Extras") { onNavigate(MorePage.Extras) }
-        HorizontalDivider(color = CardBorder)
+        item {
+            MoreMenuCard(
+                icon = IconKind.Terminal,
+                iconTint = Green,
+                title = "Live Security Console",
+                subtitle = "Inspect real-time auth, SQL, IPC and exploit events (${LogStore.entries.size} lines)",
+                badge = "LIVE",
+                badgeColor = Green,
+                onClick = { onNavigate(MorePage.Console) },
+            )
+        }
+        item {
+            MoreMenuCard(
+                icon = IconKind.Phone,
+                iconTint = Cyan,
+                title = "Device Intelligence",
+                subtitle = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · ${Build.MODEL} · Root & debug posture",
+                badge = "API ${Build.VERSION.SDK_INT}",
+                badgeColor = Cyan,
+                onClick = { onNavigate(MorePage.Device) },
+            )
+        }
+        item {
+            MoreMenuCard(
+                icon = IconKind.Code,
+                iconTint = Accent,
+                title = "Frida, Resources & Settings",
+                subtitle = "Searchable 30-script Frida/ADB library, OWASP MASTG links and progress reset",
+                badge = "${ChallengeCatalog.all.size} SCRIPTS",
+                badgeColor = Accent,
+                onClick = { onNavigate(MorePage.Extras) },
+            )
+        }
     }
 }
 
 @Composable
-private fun MoreMenuRow(icon: IconKind, title: String, onClick: () -> Unit) {
-    Row(
+private fun MoreMenuCard(
+    icon: IconKind,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    badge: String,
+    badgeColor: Color,
+    onClick: () -> Unit,
+) {
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 16.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .clickable(onClick = onClick),
+        color = Panel,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, CardBorder),
     ) {
-        EvilIcon(icon, tint = Color(0xFFD4D4DC), size = 22.dp)
-        Spacer(Modifier.width(16.dp))
-        Text(title, fontSize = 17.sp, color = Color.White, modifier = Modifier.weight(1f))
-        EvilIcon(IconKind.ChevronRight, tint = Muted, size = 16.dp)
+        Row(
+            modifier = Modifier.padding(15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iconTint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                EvilIcon(icon, tint = iconTint, size = 21.dp)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        title,
+                        fontSize = 15.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    BadgeView(badge, badgeColor)
+                }
+                Text(subtitle, fontSize = 12.5.sp, color = Muted, lineHeight = 17.sp)
+            }
+            Spacer(Modifier.width(8.dp))
+            EvilIcon(IconKind.ChevronRight, tint = Muted, size = 16.dp)
+        }
     }
 }
 
