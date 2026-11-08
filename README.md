@@ -24,10 +24,11 @@ The Android companion to [evilcorp-ios](https://github.com/jankesec/evilcorp-ios
 ## Interface
 
 <div align="center">
-  <img src="screenshots/Home.png" alt="Home dashboard" width="24%" />
-  <img src="screenshots/Cleartext.png" alt="Lab detail" width="24%" />
-  <img src="screenshots/DeepLink.png" alt="Deep link exploited" width="24%" />
-  <img src="screenshots/Progress.png" alt="Progress" width="24%" />
+  <img src="screenshots/Home.png" alt="EvilCorp home dashboard" width="19%" />
+  <img src="screenshots/Labs.png" alt="Searchable challenge catalog" width="19%" />
+  <img src="screenshots/MASVS.png" alt="OWASP MASVS coverage view" width="19%" />
+  <img src="screenshots/Progress.png" alt="Training progress dashboard" width="19%" />
+  <img src="screenshots/Console.png" alt="Local training console" width="19%" />
 </div>
 
 ## What this project is
