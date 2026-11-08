@@ -28,7 +28,7 @@ The Android companion to [evilcorp-ios](https://github.com/jankesec/evilcorp-ios
   <img src="screenshots/Labs.png" alt="Searchable challenge catalog" width="19%" />
   <img src="screenshots/MASVS.png" alt="OWASP MASVS coverage view" width="19%" />
   <img src="screenshots/Progress.png" alt="Training progress dashboard" width="19%" />
-  <img src="screenshots/Console.png" alt="Local training console" width="19%" />
+  <img src="screenshots/More.png" alt="Operator toolkit" width="19%" />
 </div>
 
 ## What this project is
@@ -141,9 +141,9 @@ All network activity stays on the device loopback (`127.0.0.1:8080`, reachable v
 .
 ├── app/src/main/java/com/evilcorp/android/
 │   ├── model/        Challenge catalog (single source of truth) and scoring
-│   ├── labs/         One file per lab (30 labs) + flags + registry
-│   ├── data/         Local progress store
-│   └── ui/           Compose screens (Home, Labs, MASVS, Progress, detail)
+│   ├── labs/         42 self-contained security labs + flags + registry
+│   ├── data/         Local progress store and runtime security log
+│   └── ui/           Compose screens (Home, Labs, MASVS, Progress, More, Detail)
 ├── app/src/test/     Catalog, scoring and flag invariants
 ├── Makefile          build / test / install / run / release
 └── .github/workflows/ci.yml

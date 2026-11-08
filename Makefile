@@ -2,6 +2,12 @@ GRADLE ?= ./gradlew
 PKG    := com.evilcorp.android
 APK    := app/build/outputs/apk/debug/app-debug.apk
 
+ifeq ($(origin JAVA_HOME), undefined)
+  ifneq ($(wildcard /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home),)
+    export JAVA_HOME := /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+  endif
+endif
+
 .PHONY: build test check install run uninstall clean release
 
 build:      ## Assemble the debug APK
