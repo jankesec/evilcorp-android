@@ -145,6 +145,8 @@ All network activity stays on the device loopback (`127.0.0.1:8080`, reachable v
 │   ├── data/         Local progress store and runtime security log
 │   └── ui/           Compose screens (Home, Labs, MASVS, Progress, More, Detail)
 ├── app/src/test/     Catalog, scoring and flag invariants
+├── frida/            Universal Frida instrumentation & bypass suite
+├── scripts/          Automated ADB exploit & IPC verification runner
 ├── Makefile          build / test / install / run / release
 └── .github/workflows/ci.yml
 ```
