@@ -40,6 +40,8 @@ class ProgressStore(context: Context) {
 
     fun hintsUsed(id: String): Int = hints[id] ?: 0
 
+    fun isSolved(id: String): Boolean = solved.containsKey(id)
+
     fun revealHint(id: String, max: Int) {
         val next = (hintsUsed(id) + 1).coerceAtMost(max)
         hints[id] = next

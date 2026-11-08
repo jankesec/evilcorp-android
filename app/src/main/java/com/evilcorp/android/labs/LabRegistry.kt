@@ -37,6 +37,18 @@ object LabRegistry {
         "memory" to LabEntry(Flags.MEMORY) { MemoryLab() },
         "intentredirect" to LabEntry(Flags.INTENTREDIRECT) { IntentRedirectLab() },
         "pathtraversal" to LabEntry(Flags.PATHTRAVERSAL) { PathTraversalLab() },
+        "jwt" to LabEntry(Flags.JWT) { JwtAuthLab() },
+        "stepup" to LabEntry(Flags.STEPUP) { StepUpAuthLab() },
+        "trustmanager" to LabEntry(Flags.TRUSTMANAGER) { TrustManagerLab() },
+        "ivreuse" to LabEntry(Flags.IVREUSE) { IvReuseLab() },
+        "dexload" to LabEntry(Flags.DEXLOAD) { DexLoadLab() },
+        "serialization" to LabEntry(Flags.SERIALIZATION) { SerializationLab() },
+        "nativebridge" to LabEntry(Flags.NATIVEBRIDGE) { NativeBridgeLab() },
+        "emulator" to LabEntry(Flags.EMULATOR) { EmulatorLab() },
+        "repackaging" to LabEntry(Flags.REPACKAGING) { RepackagingLab() },
+        "tracking" to LabEntry(Flags.TRACKING) { PrivacyTrackingLab() },
+        "notifications" to LabEntry(Flags.NOTIFICATIONS) { NotificationLeakLab() },
+        "strandhogg" to LabEntry(Flags.STRANDHOGG) { StrandHoggLab() },
     )
 
     fun isCorrect(id: String, submitted: String): Boolean =

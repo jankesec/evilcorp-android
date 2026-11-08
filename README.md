@@ -7,10 +7,10 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/jankesec/evilcorp-android/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/jankesec/evilcorp-android/actions/workflows/ci.yml)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2-7F52FF?style=flat-square&logo=kotlin)](https://kotlinlang.org/)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-111?style=flat-square&logo=android)](https://developer.android.com/)
-[![Challenges](https://img.shields.io/badge/challenges-30-42d77d?style=flat-square)](#challenge-catalog)
+[![Challenges](https://img.shields.io/badge/challenges-42-42d77d?style=flat-square)](#challenge-catalog)
 [![License](https://img.shields.io/badge/license-MIT-111?style=flat-square)](LICENSE)
 
-Thirty self-contained labs mapped to CWE, OWASP MASVS and MASWE, with progressive hints,
+Forty-two self-contained labs mapped to CWE, OWASP MASVS v2, MASTG and MASWE, with progressive hints,
 CTF flags and scoring, local progress tracking, and adb / Frida / jadx examples per lab.
 The Android companion to [evilcorp-ios](https://github.com/jankesec/evilcorp-ios).
 
@@ -100,9 +100,21 @@ emulator or a frida-gadget build.
 | 25 | HTTP Disk Cache Leak | Network | Medium | CWE-524 · STORAGE-2 · MASWE-0009 |
 | 26 | Mutable PendingIntent Hijack | Platform | Hard | CWE-927 · PLATFORM-1 · MASWE-0065 |
 | 27 | Tapjacking / Obscured Touch | Platform | Medium | CWE-1021 · PLATFORM-3 · MASWE-0056 |
-| 28 | Sensitive Data in Heap Memory | Storage | Hard | CWE-316 · STORAGE-2 · MASWE-0004 |
-| 29 | Intent Redirection | Platform | Hard | CWE-940 · PLATFORM-1 · MASWE-0061 |
-| 30 | Zip Slip / Path Traversal | Storage | Hard | CWE-22 · CODE-4 · MASWE-0081 |
+| 28 | Sensitive Data in Heap Memory | Storage | Hard | CWE-316 · STORAGE-2 · MASWE-0004 · MASTG-TEST-0011 |
+| 29 | Intent Redirection | Platform | Hard | CWE-940 · PLATFORM-1 · MASWE-0061 · MASTG-TEST-0027 |
+| 30 | Zip Slip / Path Traversal | Code | Hard | CWE-22 · CODE-4 · MASWE-0081 · MASTG-TEST-0043 |
+| 31 | Insecure JWT & alg:none | Auth | Medium | CWE-347 · AUTH-1 · MASWE-0031 · MASTG-TEST-0024 |
+| 32 | Missing Step-Up Authentication | Auth | Hard | CWE-306 · AUTH-3 · MASWE-0038 · MASTG-TEST-0026 |
+| 33 | TrustAll X509TrustManager | Network | Medium | CWE-295 · NETWORK-1 · MASWE-0052 · MASTG-TEST-0021 |
+| 34 | Static IV & Nonce Reuse | Crypto | Hard | CWE-329 · CRYPTO-1 · MASWE-0022 · MASTG-TEST-0014 |
+| 35 | Unverified Dynamic Code Loading | Code | Hard | CWE-494 · CODE-2 · MASWE-0084 · MASTG-TEST-0041 |
+| 36 | Unsafe Java Deserialization | Code | Hard | CWE-502 · CODE-4 · MASWE-0080 · MASTG-TEST-0044 |
+| 37 | JNI Stack Buffer Overflow | Code | Hard | CWE-120 · CODE-3 · MASWE-0076 · MASTG-TEST-0042 |
+| 38 | Emulator Detection Bypass | Resilience | Medium | CWE-693 · RESILIENCE-1 · MASWE-0099 · MASTG-TEST-0048 |
+| 39 | APK Signature & Installer Check | Resilience | Hard | CWE-345 · RESILIENCE-3 · MASWE-0102 · MASTG-TEST-0045 |
+| 40 | Persistent Device Fingerprinting | Privacy | Easy | CWE-359 · PRIVACY-3 · MASWE-0110 · MASTG-TEST-0055 |
+| 41 | Public Lockscreen Notification Leak | Privacy | Easy | CWE-200 · PRIVACY-2 · MASWE-0057 · MASTG-TEST-0010 |
+| 42 | Task Affinity & Activity Hijack | Platform | Hard | CWE-1021 · PLATFORM-3 · MASWE-0062 · MASTG-TEST-0031 |
 
 Mappings are training metadata, not a formal compliance assessment. Confirm current OWASP
 definitions before using them in an audit or report.

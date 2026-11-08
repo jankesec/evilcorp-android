@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,16 +72,15 @@ fun ChallengeDetailScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .background(Bg)
             .systemBarsPadding()
             .imePadding(),
     ) {
-        // Top header bar with Prev / Title + Taxonomy Badges / Next
+        // Top header bar in jankesec.com style
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Panel)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .background(Color(0xF0060606))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
@@ -88,14 +89,14 @@ fun ChallengeDetailScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable(enabled = prevId != null) { prevId?.let(onSelectChallenge) }
                         .padding(6.dp),
                 ) {
                     EvilIcon(
                         IconKind.ChevronLeft,
-                        tint = if (prevId != null) Color.White else Muted.copy(alpha = 0.3f),
-                        size = 20.dp,
+                        tint = if (prevId != null) Mono100 else Muted.copy(alpha = 0.3f),
+                        size = 18.dp,
                     )
                 }
                 Column(
@@ -104,33 +105,33 @@ fun ChallengeDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Text(
-                        text = c.title,
-                        fontSize = 18.sp,
+                        text = "%02d // %s".format(idx + 1, c.title),
+                        fontSize = 15.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = TextPrimary,
                         textAlign = TextAlign.Center,
                     )
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
-                        BadgeView(c.cwe, Color.White)
-                        BadgeView(c.masvs, Color.White)
-                        BadgeView(c.maswe, Cyan)
-                        BadgeView(c.cvss, Yellow)
-                        BadgeView(c.difficulty.label, difficultyColor(c.difficulty))
+                        BadgeView(c.cwe, cvssSeverityColor(c.cvss))
+                        BadgeView(c.masvs, TextSoft)
+                        BadgeView(c.maswe, TextSoft)
+                        BadgeView("CVSS ${cvssNumericString(c.cvss)}", cvssSeverityColor(c.cvss))
+                        BadgeView(c.difficulty.label.uppercase(), difficultyColor(c.difficulty))
                     }
                 }
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable(enabled = nextId != null) { nextId?.let(onSelectChallenge) }
                         .padding(6.dp),
                 ) {
                     EvilIcon(
                         IconKind.ChevronRight,
-                        tint = if (nextId != null) Color.White else Muted.copy(alpha = 0.3f),
-                        size = 20.dp,
+                        tint = if (nextId != null) Mono100 else Muted.copy(alpha = 0.3f),
+                        size = 18.dp,
                     )
                 }
             }
@@ -142,54 +143,57 @@ fun ChallengeDetailScreen(
             ) {
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable { store.toggleSolved(c) }
                         .padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    EvilIcon(
-                        IconKind.Check,
-                        tint = if (solvedPoints != null) Green else Muted,
-                        size = 16.dp,
-                    )
                     Text(
-                        text = if (solvedPoints != null) "Solved (+$solvedPoints pts)" else "Mark Solved",
+                        text = if (solvedPoints != null) "[✓] SOLVED (+$solvedPoints PTS)" else "[ ] MARK SOLVED",
                         color = if (solvedPoints != null) Green else Muted,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontSize = 10.5.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
                 Spacer(Modifier.weight(1f))
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable { store.toggleBookmark(c.id) }
                         .padding(6.dp),
                 ) {
-                    EvilIcon(
-                        IconKind.Bookmark,
-                        tint = if (bookmarked) Accent else Muted,
-                        size = 17.dp,
+                    Text(
+                        text = if (bookmarked) "★ SAVED" else "☆ SAVE",
+                        color = if (bookmarked) Mono100 else Muted,
+                        fontSize = 10.5.sp,
+                        fontFamily = FontFamily.Monospace,
                     )
                 }
                 Spacer(Modifier.width(8.dp))
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable(onClick = onBack)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    EvilIcon(IconKind.Close, tint = Muted, size = 14.dp)
-                    Text("Labs", color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        "ESC // LABS",
+                        color = Mono100,
+                        fontSize = 10.5.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(LineSubtle))
 
         // Segmented picker: Lab | Hints | Frida
-        Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Box(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
             SegmentedControl(
                 tabs = listOf("Lab", "Hints ($hintsUsed/${c.hints.size})", "Frida & Tools"),
                 selectedIndex = section,
@@ -201,46 +205,52 @@ fun ChallengeDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+                .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when (section) {
                 0 -> {
                     Card {
-                        Text(c.description, fontSize = 14.sp, color = Color.White)
+                        Kicker("${c.area.masvsCategory} // BRIEFING")
+                        Text(c.description, fontSize = 13.5.sp, color = TextPrimary, lineHeight = 19.sp)
                         Text(
-                            "Area: ${c.area.label} · Difficulty: ${c.difficulty.label} (${c.difficulty.points} pts) · CVSS: ${c.cvss}",
-                            fontSize = 12.sp,
+                            "Area: ${c.area.label} · ${c.masvs} · ${c.maswe} · CVSS: ${c.cvss}",
+                            fontSize = 11.sp,
                             color = Muted,
+                            fontFamily = FontFamily.Monospace,
                         )
                     }
 
                     LabRegistry.entries[c.id]?.content?.invoke()
 
                     Card {
-                        SectionTitle("Submit Flag")
+                        Kicker("FLAG VERIFICATION")
                         if (solvedPoints != null) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                EvilIcon(IconKind.Check, tint = Green, size = 18.dp)
-                                Text(
-                                    "Solved · +$solvedPoints pts",
-                                    color = Green,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                )
-                            }
+                            Text(
+                                "[✓] SOLVED · +$solvedPoints PTS AWARDED",
+                                color = Green,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.5.sp,
+                                fontFamily = FontFamily.Monospace,
+                            )
                         } else {
                             OutlinedTextField(
                                 value = flag,
                                 onValueChange = { flag = it },
                                 singleLine = true,
-                                label = { Text("EVILCORP{…}") },
+                                label = { Text("EVILCORP{…}", fontFamily = FontFamily.Monospace, fontSize = 12.sp) },
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(6.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = BgSoft,
+                                    unfocusedContainerColor = BgSoft,
+                                    focusedBorderColor = Mono100,
+                                    unfocusedBorderColor = CardBorder,
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary,
+                                ),
                             )
-                            PrimaryButton("Submit") {
+                            PrimaryButton("Verify Flag") {
                                 feedback = if (LabRegistry.isCorrect(c.id, flag)) {
                                     store.markSolved(c)
                                     "Correct!"
@@ -252,14 +262,15 @@ fun ChallengeDetailScreen(
                                 Text(
                                     feedback,
                                     color = if (feedback == "Correct!") Green else Red,
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
                                 )
                             }
                         }
                     }
                 }
                 1 -> {
-                    Text("Hints", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Kicker("PROGRESSIVE DISCLOSURE")
                     Text(
                         "Each revealed hint reduces the challenge award by ${Scoring.HINT_PENALTY} pts (minimum 50%).",
                         fontSize = 12.sp,
@@ -267,69 +278,49 @@ fun ChallengeDetailScreen(
                     )
                     if (hintsUsed == 0) {
                         Card {
-                            Text("No hints revealed yet. Try inspecting the app first!", color = Muted, fontSize = 13.sp)
+                            Text(
+                                "No hints revealed yet. Inspect the target binary and runtime logs first.",
+                                color = Muted,
+                                fontSize = 12.5.sp,
+                            )
                         }
                     }
                     c.hints.take(hintsUsed).forEachIndexed { i, h ->
                         Card {
-                            BadgeView("Hint ${i + 1}", Accent)
-                            Text(h, fontSize = 14.sp, color = Color.White)
+                            BadgeView("HINT 0${i + 1}", Mono100)
+                            Text(h, fontSize = 13.5.sp, color = TextPrimary, lineHeight = 19.sp)
                         }
                     }
                     if (hintsUsed < c.hints.size) {
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Yellow.copy(alpha = 0.15f))
-                                .clickable { store.revealHint(c.id, c.hints.size) }
-                                .padding(horizontal = 16.dp, vertical = 11.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            EvilIcon(IconKind.Lightbulb, tint = Yellow, size = 18.dp)
-                            Text(
-                                "Reveal Hint ${hintsUsed + 1}",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                        PrimaryButton("Reveal Hint 0${hintsUsed + 1}") {
+                            store.revealHint(c.id, c.hints.size)
                         }
                     }
                 }
                 2 -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
+                    Kicker("INSTRUMENTATION & ADB")
+                    LpCodeWindow(
+                        title = "${c.id} — exploit snippet",
+                        actionText = if (copied) "COPIED" else "COPY",
+                        onClick = {
+                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            cm.setPrimaryClip(ClipData.newPlainText(c.id, c.tooling))
+                            copied = true
+                        },
                     ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Frida & ADB Tooling", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            Text("Run on your workstation against the connected emulator/device:", fontSize = 12.sp, color = Accent)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Elevated)
-                                .clickable {
-                                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    cm.setPrimaryClip(ClipData.newPlainText(c.id, c.tooling))
-                                    copied = true
-                                }
-                                .padding(horizontal = 12.dp, vertical = 7.dp),
-                        ) {
-                            Text(
-                                if (copied) "Copied" else "Copy",
-                                color = if (copied) Green else Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
+                        Text(
+                            text = c.tooling,
+                            color = TextSoft,
+                            fontSize = 11.5.sp,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = 17.sp,
+                        )
                     }
-                    Mono(c.tooling, color = Accent)
                     Card {
-                        SectionTitle("Quick Reference")
-                        Text("· Connect emulator or test device via ADB", fontSize = 13.sp, color = Muted)
-                        Text("· Frida: frida -U -f com.evilcorp.android -l hook.js", fontSize = 13.sp, color = Muted)
-                        Text("· Decompile APK: jadx-gui app-debug.apk", fontSize = 13.sp, color = Muted)
+                        Kicker("QUICK REFERENCE")
+                        Text("01  adb shell / adb logcat -s EvilCorpAuth", fontSize = 11.5.sp, color = Muted, fontFamily = FontFamily.Monospace)
+                        Text("02  frida -U -f com.evilcorp.android -l hook.js", fontSize = 11.5.sp, color = Muted, fontFamily = FontFamily.Monospace)
+                        Text("03  jadx-gui app-debug.apk", fontSize = 11.5.sp, color = Muted, fontFamily = FontFamily.Monospace)
                     }
                 }
             }

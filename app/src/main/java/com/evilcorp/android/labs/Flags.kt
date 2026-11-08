@@ -1,7 +1,7 @@
 package com.evilcorp.android.labs
 
 /**
- * Synthetic CTF flags for all 30 labs. These are training values, not real secrets.
+ * Synthetic CTF flags for all 42 labs. These are training values, not real secrets.
  * A flag is only meant to be obtained by exploiting the matching lab.
  */
 object Flags {
@@ -35,4 +35,16 @@ object Flags {
     const val MEMORY = "EVILCORP{1mmut4bl3_str1ng_1n_h34p_dump}"
     const val INTENTREDIRECT = "EVILCORP{1nt3nt_r3d1r3ct_p1v0t_4dm1n}"
     const val PATHTRAVERSAL = "EVILCORP{z1p_sl1p_d0t_d0t_sl4sh}"
+    const val JWT = "EVILCORP{jwt_4lg_n0n3_cl41m_f0rg3d}"
+    const val STEPUP = "EVILCORP{st3p_up_4uth_sk1pp3d_w1r3}"
+    const val TRUSTMANAGER = "EVILCORP{trus7_4ll_c3rts_m1tm_pwn}"
+    const val IVREUSE = "EVILCORP{st4t1c_n0nc3_x0r_k3ystr34m}"
+    const val DEXLOAD = "EVILCORP{uns1gn3d_d3x_plug1n_l04d3d}"
+    const val SERIALIZATION = "EVILCORP{j4v4_0bj3ct_d3s3r14l1z3_4dm1n}"
+    const val NATIVEBRIDGE = "EVILCORP{jn1_st4ck_buff3r_0v3rfl0w}"
+    const val EMULATOR = "EVILCORP{3mul4t0r_pr0p_ch3ck_sp00f3d}"
+    const val REPACKAGING = "EVILCORP{s1gn4tur3_v3r1f13r_h00k3d}"
+    const val TRACKING = "EVILCORP{h4rdw4r3_1d_f1ng3rpr1nt_l34k}"
+    const val NOTIFICATIONS = "EVILCORP{pu8l1c_l0ckscr33n_2f4_l34k}"
+    const val STRANDHOGG = "EVILCORP{t4sk_4ff1n1ty_r3p4r3nt_h1j4ck}"
 }

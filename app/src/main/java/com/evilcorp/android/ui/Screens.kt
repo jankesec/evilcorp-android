@@ -1,10 +1,5 @@
 package com.evilcorp.android.ui
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,13 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,373 +33,657 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.evilcorp.android.BuildConfig
-import com.evilcorp.android.R
 import com.evilcorp.android.data.ProgressStore
 import com.evilcorp.android.model.Area
 import com.evilcorp.android.model.Challenge
 import com.evilcorp.android.model.ChallengeCatalog
 import com.evilcorp.android.model.Difficulty
-import com.evilcorp.android.model.Scoring
-
-private val all = ChallengeCatalog.all
 
 @Composable
 fun HomeScreen(
     store: ProgressStore,
-    modifier: Modifier,
-    onOpen: (String) -> Unit,
-    onBrowse: () -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenChallenge: (String) -> Unit,
+    onExploreAll: () -> Unit,
 ) {
-    var showAll by rememberSaveable { mutableStateOf(false) }
-    var selectedArea by rememberSaveable { mutableStateOf<Area?>(null) }
-
-    val featured = remember {
-        listOf("sqli", "sslpinning", "intentredirect", "biometric", "webview", "pathtraversal")
-            .mapNotNull(ChallengeCatalog::byId)
-    }
-    val nextChallenge = remember(store.solved.size) {
-        all.firstOrNull { !store.solved.containsKey(it.id) } ?: all.first()
-    }
-    val filteredGrid = remember(selectedArea, showAll) {
-        val base = if (selectedArea == null) all else all.filter { it.area == selectedArea }
-        if (showAll || selectedArea != null) base else base.take(8)
+    val all = ChallengeCatalog.all
+    val solvedCount = store.solved.size
+    val nextUnsolved = remember(store.solved.keys.toSet()) {
+        all.firstOrNull { !store.isSolved(it.id) } ?: all.first()
     }
 
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Bg),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         if (store.ctfMode) {
             item { CtfBanner(store) }
         }
 
-        // Clean Hero Header with ambient radial glow
+        // 1. jankesec.com editorial hero (.home-hero-copy + .home-trust-row)
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Canvas(Modifier.size(160.dp)) {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(Green.copy(alpha = 0.14f), Color.Transparent),
-                            center = Offset(size.width / 2f, size.height / 2f),
-                            radius = size.width / 2f,
-                        )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Kicker(text = "OFFENSIVE SECURITY · ANDROID LAB")
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Vulnerability benchmark",
+                        fontSize = 27.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        letterSpacing = (-0.6).sp,
+                        lineHeight = 32.sp,
+                    )
+                    Text(
+                        text = "and mobile exploitation.",
+                        fontSize = 25.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontStyle = FontStyle.Italic,
+                        color = Muted,
+                        letterSpacing = (-0.4).sp,
+                        lineHeight = 30.sp,
                     )
                 }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                Text(
+                    text = "${all.size} deliberately vulnerable Android targets mapped to CWE, OWASP MASVS v2, and MASWE — engineered for ADB, jadx, and Frida instrumentation.",
+                    fontSize = 13.sp,
+                    color = TextSoft,
+                    lineHeight = 19.sp,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(88.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color.White.copy(alpha = 0.28f), CircleShape),
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.evilcorp_logo),
-                            contentDescription = "EvilCorp emblem",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
+                    PrimaryButton("Explore Labs", onClick = onExploreAll)
+                    if (!store.ctfMode) {
+                        GhostButton("Start CTF Mode") { store.startCtf() }
+                    } else {
+                        GhostButton("Stop CTF") { store.stopCtf() }
+                    }
+                }
+                TrustLedgerRow(
+                    items = listOf(
+                        "${all.size}" to "Listed Labs",
+                        "$solvedCount/${all.size}" to "Solved Records",
+                        "${store.score()}" to "CTF Score",
+                    ),
+                )
+            }
+        }
+
+        // 2. jankesec.com .lp-code-window target evidence terminal
+        item {
+            LpCodeWindow(
+                title = "triage — next target",
+                actionText = "Launch target ↗",
+                onClick = { onOpenChallenge(nextUnsolved.id) },
+            ) {
+                TerminalKeyValueRow("[target]", nextUnsolved.title, TextPrimary)
+                TerminalKeyValueRow(
+                    "[vector]",
+                    "${nextUnsolved.cwe} · ${nextUnsolved.masvs} · ${nextUnsolved.maswe}",
+                    cvssSeverityColor(nextUnsolved.cvss),
+                )
+                TerminalKeyValueRow(
+                    "[status]",
+                    "CVSS ${nextUnsolved.cvss} · ${nextUnsolved.difficulty.label} (+${nextUnsolved.difficulty.points} pts)",
+                    TextSoft,
+                )
+            }
+        }
+
+        // 3. Attack Surface (.home-project-card grid from jankesec.com)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Kicker("DOMAINS")
+                        Text(
+                            "Attack Surface",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            letterSpacing = (-0.3).sp,
                         )
                     }
                     Text(
-                        text = "EVILCORP",
-                        fontSize = 27.sp,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Serif,
-                        letterSpacing = 1.5.sp,
-                        color = Color.White,
+                        text = "All ${all.size} labs →",
+                        color = Muted,
+                        fontSize = 11.5.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.clickable(onClick = onExploreAll),
                     )
+                }
+
+                val areas = Area.entries
+                for (row in areas.chunked(2)) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text(
-                            text = "Android Security Laboratory",
-                            fontSize = 13.sp,
-                            color = Muted,
-                        )
-                        BadgeView("v${BuildConfig.VERSION_NAME}", Green)
+                        for (area in row) {
+                            val areaIdx = areas.indexOf(area) + 1
+                            val inArea = all.filter { it.area == area }
+                            val doneInArea = inArea.count { store.isSolved(it.id) }
+                            val pct = if (inArea.isEmpty()) 0f else doneInArea.toFloat() / inArea.size
+                            val shape = RoundedCornerShape(8.dp)
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(shape)
+                                    .background(Panel)
+                                    .border(1.dp, CardBorder, shape)
+                                    .clickable { onExploreAll() }
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(5.dp)
+                                                .clip(CircleShape)
+                                                .background(Mono100),
+                                        )
+                                        Text(
+                                            text = area.masvsCategory.removePrefix("MASVS-"),
+                                            fontSize = 9.5.sp,
+                                            color = Mono100,
+                                            fontFamily = FontFamily.Monospace,
+                                            letterSpacing = 0.8.sp,
+                                        )
+                                    }
+                                    Text(
+                                        text = "%02d".format(areaIdx),
+                                        fontSize = 10.sp,
+                                        color = Muted,
+                                        fontFamily = FontFamily.Monospace,
+                                    )
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = area.label,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = TextPrimary,
+                                    )
+                                    Text(
+                                        text = "${inArea.size} challenges",
+                                        fontSize = 11.5.sp,
+                                        color = Muted,
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(2.dp)
+                                        .background(LineSubtle),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(pct.coerceIn(0f, 1f))
+                                            .fillMaxHeight()
+                                            .background(Mono100),
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = "$doneInArea/${inArea.size} solved",
+                                        fontSize = 10.5.sp,
+                                        color = Muted,
+                                        fontFamily = FontFamily.Monospace,
+                                    )
+                                    Text(
+                                        text = "↗",
+                                        fontSize = 13.sp,
+                                        color = Mono100,
+                                        fontFamily = FontFamily.Monospace,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // 4 Stat cards row
+        // 4. Priority Vulnerability Ledger (.home-cve-ledger from jankesec.com)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Kicker("VULNERABILITIES")
+                        Text(
+                            "Target Ledger",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            letterSpacing = (-0.3).sp,
+                        )
+                    }
+                    Text(
+                        text = "View all ${all.size} →",
+                        color = Muted,
+                        fontSize = 11.5.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.clickable(onClick = onExploreAll),
+                    )
+                }
+
+                val previewList = all.take(5)
+                val shape = RoundedCornerShape(8.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(shape)
+                        .background(Panel)
+                        .border(1.dp, CardBorder, shape),
+                ) {
+                    previewList.forEachIndexed { idx, c ->
+                        if (idx > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(LineSubtle),
+                            )
+                        }
+                        JankesecLedgerRow(
+                            index = idx + 1,
+                            c = c,
+                            solved = store.isSolved(c.id),
+                            bookmarked = store.isBookmarked(c.id),
+                            onClick = { onOpenChallenge(c.id) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TerminalKeyValueRow(tag: String, value: String, valueColor: Color) {
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = Muted, fontWeight = FontWeight.Normal)) {
+                append(tag.padEnd(9, ' '))
+            }
+            withStyle(SpanStyle(color = valueColor, fontWeight = FontWeight.SemiBold)) {
+                append(value)
+            }
+        },
+        fontSize = 11.5.sp,
+        fontFamily = FontFamily.Monospace,
+        lineHeight = 17.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+fun JankesecLedgerRow(
+    index: Int,
+    c: Challenge,
+    solved: Boolean,
+    bookmarked: Boolean,
+    onClick: () -> Unit,
+) {
+    val sevColor = cvssSeverityColor(c.cvss)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "%02d".format(index),
+            color = Muted,
+            fontSize = 11.sp,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.width(22.dp),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "${c.cwe} · ${c.masvs.removePrefix("MASVS-")} · ${c.maswe}",
+                    color = sevColor,
+                    fontSize = 10.5.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 0.4.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (bookmarked) {
+                    Text("★", color = Mono100, fontSize = 10.sp)
+                }
+            }
+            Text(
+                text = c.title,
+                color = TextPrimary,
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (solved) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Green.copy(alpha = 0.14f))
+                    .border(1.dp, Green.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 7.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = "SOLVED",
+                    color = Green,
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+        } else {
+            CveScoreBadge(c.cvss)
+        }
+        Text(
+            text = "↗",
+            color = Mono100,
+            fontSize = 14.sp,
+            fontFamily = FontFamily.Monospace,
+        )
+    }
+}
+
+@Composable
+fun LabsScreen(
+    store: ProgressStore,
+    modifier: Modifier = Modifier,
+    onOpenChallenge: (String) -> Unit,
+) {
+    var search by rememberSaveable { mutableStateOf("") }
+    var diffFilter by rememberSaveable { mutableStateOf<Difficulty?>(null) }
+    var savedOnly by rememberSaveable { mutableStateOf(false) }
+    var selectedCwe by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val allCwes = remember { ChallengeCatalog.all.map { it.cwe }.distinct() }
+
+    val filtered = ChallengeCatalog.all.filter { c ->
+        (diffFilter == null || c.difficulty == diffFilter) &&
+            (!savedOnly || store.isBookmarked(c.id)) &&
+            (selectedCwe == null || c.cwe == selectedCwe) &&
+            (
+                search.isBlank() ||
+                    c.title.contains(search, ignoreCase = true) ||
+                    c.cwe.contains(search, ignoreCase = true) ||
+                    c.masvs.contains(search, ignoreCase = true) ||
+                    c.maswe.contains(search, ignoreCase = true)
+                )
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                singleLine = true,
+                leadingIcon = { EvilIcon(IconKind.Search, tint = Muted, size = 17.dp) },
+                placeholder = {
+                    Text(
+                        "Search CWE-89, STORAGE-1, SQLite...",
+                        color = Muted,
+                        fontSize = 12.5.sp,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(6.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Panel,
+                    unfocusedContainerColor = Panel,
+                    focusedBorderColor = Mono100,
+                    unfocusedBorderColor = CardBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                ),
+            )
+        }
+
+        // Difficulty + Saved filter pills
         item {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                StatCardView(
-                    value = "${all.size}",
-                    label = "Challenges",
-                    icon = IconKind.Flask,
-                    iconColor = Color.White,
-                    modifier = Modifier.weight(1f),
+                FilterPill(
+                    text = "All (${ChallengeCatalog.all.size})",
+                    selected = diffFilter == null && !savedOnly,
+                    onClick = {
+                        diffFilter = null
+                        savedOnly = false
+                    },
                 )
-                StatCardView(
-                    value = "${store.solved.size}",
-                    label = "Solved",
-                    icon = IconKind.Check,
-                    iconColor = Green,
-                    modifier = Modifier.weight(1f),
-                )
-                StatCardView(
-                    value = "${store.score()}",
-                    label = "Points",
-                    icon = IconKind.Chart,
-                    iconColor = Accent,
-                    modifier = Modifier.weight(1f),
-                )
-                StatCardView(
-                    value = if (store.ctfMode) "CTF" else "Lab",
-                    label = "Mode",
-                    icon = if (store.ctfMode) IconKind.Flag else IconKind.Shield,
-                    iconColor = if (store.ctfMode) Accent else Blue,
-                    modifier = Modifier.weight(1f),
+                Difficulty.entries.forEach { d ->
+                    FilterPill(
+                        text = d.label,
+                        selected = diffFilter == d,
+                        onClick = { diffFilter = if (diffFilter == d) null else d },
+                    )
+                }
+                FilterPill(
+                    text = "Saved (${store.bookmarks.size})",
+                    selected = savedOnly,
+                    onClick = { savedOnly = !savedOnly },
                 )
             }
         }
 
-        // Active Mission / Up Next + CTF Mode Action Card
+        // CWE filter strip
         item {
-            Surface(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onOpen(nextChallenge.id) },
-                color = Panel,
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Column(
-                    modifier = Modifier.padding(15.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(Green)
-                            )
-                            Text(
-                                text = "NEXT TARGET",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                letterSpacing = 0.8.sp,
-                                color = Green,
-                            )
-                        }
-                        if (!store.ctfMode) {
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Accent.copy(alpha = 0.16f))
-                                    .clickable { store.startCtf() }
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                EvilIcon(IconKind.Flag, tint = Accent, size = 12.dp)
-                                Text(
-                                    "START CTF MODE",
-                                    color = Accent,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        }
-                    }
+                allCwes.forEach { cwe ->
+                    TagPill(
+                        text = cwe,
+                        selected = selectedCwe == cwe,
+                        onClick = { selectedCwe = if (selectedCwe == cwe) null else cwe },
+                    )
+                }
+            }
+        }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
+        item {
+            val shape = RoundedCornerShape(8.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(Panel)
+                    .border(1.dp, CardBorder, shape),
+            ) {
+                if (filtered.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Elevated),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            EvilIcon(
-                                kind = challengeIcon(nextChallenge.id, nextChallenge.area),
-                                tint = Color.White,
-                                size = 20.dp,
+                        Text(
+                            "No records matching current filter.",
+                            color = Muted,
+                            fontSize = 12.5.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+                } else {
+                    filtered.forEachIndexed { idx, c ->
+                        if (idx > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(LineSubtle),
                             )
                         }
-                        Spacer(Modifier.width(12.dp))
+                        JankesecLedgerRow(
+                            index = idx + 1,
+                            c = c,
+                            solved = store.isSolved(c.id),
+                            bookmarked = store.isBookmarked(c.id),
+                            onClick = { onOpenChallenge(c.id) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MasvsScreen(
+    store: ProgressStore,
+    modifier: Modifier = Modifier,
+    onOpenChallenge: (String) -> Unit,
+) {
+    val all = ChallengeCatalog.all
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Kicker("COMPLIANCE MATRIX")
+                Text(
+                    "OWASP MASVS v2",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    letterSpacing = (-0.4).sp,
+                )
+                Text(
+                    "Verification coverage across mobile security domains and MASWE weakness identifiers.",
+                    fontSize = 12.5.sp,
+                    color = Muted,
+                )
+            }
+        }
+        itemsIndexed(Area.entries) { areaIdx, area ->
+            val inArea = all.filter { it.area == area }
+            val done = inArea.count { store.isSolved(it.id) }
+            val pct = if (inArea.isEmpty()) 0f else done.toFloat() / inArea.size
+            Card {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "%02d // %s".format(areaIdx + 1, area.masvsCategory),
+                            fontSize = 10.sp,
+                            color = Muted,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 1.sp,
+                        )
+                        Text(
+                            area.label,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = TextPrimary,
+                        )
+                    }
+                    BadgeView("$done/${inArea.size} SOLVED", if (done == inArea.size && inArea.isNotEmpty()) Green else Mono100)
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(LineSubtle),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(pct.coerceIn(0f, 1f))
+                            .fillMaxHeight()
+                            .background(Mono100),
+                    )
+                }
+                inArea.forEachIndexed { idx, c ->
+                    if (idx > 0) {
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(LineSubtle))
+                    }
+                    val solved = store.isSolved(c.id)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenChallenge(c.id) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            text = if (solved) "[✓]" else "[ ]",
+                            color = if (solved) Green else Muted,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
                         Column(Modifier.weight(1f)) {
+                            Text(c.title, fontSize = 13.5.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
                             Text(
-                                text = nextChallenge.title,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                            )
-                            Text(
-                                text = "${nextChallenge.cwe} · ${nextChallenge.masvs} · ${nextChallenge.difficulty.points} pts",
-                                fontSize = 11.5.sp,
+                                "${c.masvs} · ${c.maswe} · ${c.cwe}",
+                                fontSize = 10.5.sp,
                                 color = Muted,
                                 fontFamily = FontFamily.Monospace,
                             )
                         }
-                        BadgeView(nextChallenge.difficulty.label, difficultyColor(nextChallenge.difficulty))
-                        Spacer(Modifier.width(6.dp))
-                        EvilIcon(IconKind.ChevronRight, tint = Muted, size = 16.dp)
-                    }
-                }
-            }
-        }
-
-        // Featured horizontal carousel
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Featured Labs",
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        "High-impact scenarios",
-                        fontSize = 12.sp,
-                        color = Muted,
-                    )
-                }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(featured, key = { "feat-${it.id}" }) { c ->
-                        FeaturedCardView(
-                            challenge = c,
-                            solved = store.solved.containsKey(c.id),
-                            onClick = { onOpen(c.id) },
-                        )
-                    }
-                }
-            }
-        }
-
-        // All Vulnerabilities header + Category filter chips
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "All Vulnerabilities",
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        "Search & filter ›",
-                        fontSize = 13.sp,
-                        color = Accent,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable(onClick = onBrowse),
-                    )
-                }
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FilterPill(
-                        text = "All (${all.size})",
-                        selected = selectedArea == null,
-                        color = Color.White,
-                        onClick = { selectedArea = null },
-                    )
-                    Area.entries.forEach { a ->
-                        val count = all.count { it.area == a }
-                        FilterPill(
-                            text = "${a.label} ($count)",
-                            selected = selectedArea == a,
-                            color = Color.White,
-                            onClick = { selectedArea = if (selectedArea == a) null else a },
-                        )
-                    }
-                }
-            }
-        }
-
-        items(filteredGrid.chunked(2), key = { "grid-${it.first().id}" }) { pair ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                pair.forEach { c ->
-                    GlassCardView(
-                        challenge = c,
-                        solved = store.solved.containsKey(c.id),
-                        modifier = Modifier.weight(1f),
-                        onClick = { onOpen(c.id) },
-                    )
-                }
-                if (pair.size == 1) {
-                    Spacer(Modifier.weight(1f))
-                }
-            }
-        }
-
-        if (!showAll && selectedArea == null) {
-            item {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showAll = true },
-                    color = Panel,
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, CardBorder),
-                ) {
-                    Box(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "Show all ${all.size} challenges",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        Text("↗", color = Mono100, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                     }
                 }
             }
@@ -414,668 +692,121 @@ fun HomeScreen(
 }
 
 @Composable
-private fun FeaturedCardView(
-    challenge: Challenge,
-    solved: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier
-            .width(224.dp)
-            .clickable(onClick = onClick),
-        color = Panel,
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(
-            1.dp,
-            if (solved) Green.copy(alpha = 0.35f) else CardBorder,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background((if (solved) Green else Color.White).copy(alpha = 0.10f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    EvilIcon(
-                        kind = challengeIcon(challenge.id, challenge.area),
-                        tint = if (solved) Green else Color.White,
-                        size = 19.dp,
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    BadgeView("${challenge.difficulty.points} pts", Muted)
-                    BadgeView(
-                        text = challenge.difficulty.label,
-                        color = difficultyColor(challenge.difficulty),
-                    )
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = challenge.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = challenge.description,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp,
-                    color = Muted,
-                    minLines = 2,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "${challenge.cwe} · ${challenge.masvs}",
-                    fontSize = 10.5.sp,
-                    color = Muted,
-                    fontFamily = FontFamily.Monospace,
-                )
-                Text(
-                    text = if (solved) "Solved ✓" else "Launch ›",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (solved) Green else Accent,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun GlassCardView(
-    challenge: Challenge,
-    solved: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        color = Panel,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(
-            1.dp,
-            if (solved) Green.copy(alpha = 0.35f) else CardBorder,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background((if (solved) Green else Color.White).copy(alpha = 0.09f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    EvilIcon(
-                        kind = challengeIcon(challenge.id, challenge.area),
-                        tint = if (solved) Green else Color.White,
-                        size = 17.dp,
-                    )
-                }
-                if (solved) {
-                    EvilIcon(IconKind.Check, tint = Green, size = 16.dp)
-                } else {
-                    BadgeView(challenge.cwe, Muted)
-                }
-            }
-            Text(
-                text = challenge.title,
-                fontSize = 13.5.sp,
-                lineHeight = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
-                minLines = 2,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                BadgeView(challenge.difficulty.label, difficultyColor(challenge.difficulty))
-                BadgeView(challenge.masvs, Muted)
-            }
-        }
-    }
-}
-
-@Composable
-fun ChallengeRow(c: Challenge, solved: Boolean, onOpen: (String) -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpen(c.id) },
-        color = Panel,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(
-            1.dp,
-            if (solved) Green.copy(alpha = 0.30f) else CardBorder,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background((if (solved) Green else Color.White).copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                EvilIcon(
-                    kind = challengeIcon(c.id, c.area),
-                    tint = if (solved) Green else Color.White,
-                    size = 20.dp,
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Text(
-                    text = c.title,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.5.sp,
-                    color = Color.White,
-                )
-                Text(
-                    text = "${c.cwe} · ${c.masvs} · ${c.maswe} · ${c.cvss}",
-                    fontSize = 11.sp,
-                    color = Muted,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                BadgeView(c.difficulty.label, difficultyColor(c.difficulty))
-                if (solved) {
-                    EvilIcon(IconKind.Check, tint = Green, size = 16.dp)
-                } else {
-                    Text(
-                        "${c.difficulty.points} pts",
-                        fontSize = 10.sp,
-                        color = Muted,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun LabsScreen(store: ProgressStore, modifier: Modifier, onOpen: (String) -> Unit) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var diff by rememberSaveable { mutableStateOf<Difficulty?>(null) }
-    var tag by rememberSaveable { mutableStateOf<String?>(null) }
-    var onlyBookmarked by rememberSaveable { mutableStateOf(false) }
-
-    val quickTags = remember {
-        listOf(
-            "CWE-89", "CWE-312", "CWE-798", "CWE-319", "CWE-327", "CWE-200", "CWE-927",
-            "STORAGE-1", "STORAGE-2", "PLATFORM-1", "PLATFORM-2", "CRYPTO-1", "AUTH-2", "RESILIENCE-1",
-        )
-    }
-
-    val filtered = all.filter { c ->
-        (!onlyBookmarked || store.isBookmarked(c.id)) &&
-            (diff == null || c.difficulty == diff) &&
-            (tag == null || c.cwe == tag || c.masvs == tag) &&
-            (query.isBlank() || listOf(c.title, c.description, c.cwe, c.masvs, c.maswe, c.area.label)
-                .any { it.contains(query, ignoreCase = true) })
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Bg),
-    ) {
-        // Search box
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            color = Panel,
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, CardBorder),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                EvilIcon(IconKind.Search, tint = Muted, size = 18.dp)
-                Spacer(Modifier.width(10.dp))
-                Box(Modifier.weight(1f)) {
-                    if (query.isEmpty()) {
-                        Text("Search CWE-89, STORAGE-1...", color = Muted, fontSize = 15.sp)
-                    }
-                    BasicTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        singleLine = true,
-                        textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
-                        cursorBrush = SolidColor(Color.White),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                if (query.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { query = "" }
-                            .padding(2.dp),
-                    ) {
-                        EvilIcon(IconKind.Close, tint = Muted, size = 16.dp)
-                    }
-                }
-            }
-        }
-
-        // Difficulty + Bookmarked filter pills
-        Row(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterPill(
-                "All",
-                selected = diff == null && !onlyBookmarked,
-                color = Color.White,
-            ) {
-                diff = null
-                onlyBookmarked = false
-            }
-            Difficulty.entries.forEach { d ->
-                FilterPill(
-                    text = d.label,
-                    selected = diff == d,
-                    color = difficultyColor(d),
-                    onClick = { diff = if (diff == d) null else d },
-                )
-            }
-            FilterPill(
-                text = "Saved",
-                selected = onlyBookmarked,
-                color = Accent,
-                onClick = { onlyBookmarked = !onlyBookmarked },
-            )
-        }
-
-        // Taxonomy tag pills
-        Row(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            quickTags.forEach { t ->
-                TagPill(
-                    text = t,
-                    selected = tag == t,
-                    onClick = { tag = if (tag == t) null else t },
-                )
-            }
-        }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(filtered, key = { it.id }) { c ->
-                ChallengeRow(c, store.solved.containsKey(c.id), onOpen)
-            }
-        }
-    }
-}
-
-@Composable
-fun MasvsScreen(store: ProgressStore, modifier: Modifier, onOpen: (String) -> Unit) {
-    var expandedControl by rememberSaveable { mutableStateOf<String?>(null) }
-    val families = remember {
-        listOf(
-            Triple("STORAGE", "Local Data Storage & Privacy", listOf("STORAGE-1", "STORAGE-2")),
-            Triple("CRYPTO", "Cryptography & Key Management", listOf("CRYPTO-1", "CRYPTO-2")),
-            Triple("NETWORK", "Network Communication & TLS", listOf("NETWORK-1", "NETWORK-2")),
-            Triple("AUTH", "Authentication & Biometrics", listOf("AUTH-2")),
-            Triple("PLATFORM", "Platform IPC, WebViews & UI", listOf("PLATFORM-1", "PLATFORM-2", "PLATFORM-3")),
-            Triple("RESILIENCE", "Reverse Engineering & Tampering", listOf("RESILIENCE-1", "RESILIENCE-2", "RESILIENCE-4")),
-            Triple("CODE", "Injection & Input Sanitization", listOf("CODE-4")),
-        )
-    }
-
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Bg),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            Text(
-                "OWASP MASVS",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-        }
-        items(families, key = { it.first }) { (code, subtitle, controls) ->
-            val familyLabs = all.filter { it.masvs.startsWith(code) }
-            Card {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                    ) {
-                        Text(code, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Text("${familyLabs.size} labs", color = Green, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                }
-                Text(subtitle, color = Muted, fontSize = 13.sp)
-                Spacer(Modifier.height(2.dp))
-                controls.forEach { ctrl ->
-                    val ctrlLabs = all.filter { it.masvs == ctrl }
-                    val isExpanded = expandedControl == ctrl
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { expandedControl = if (isExpanded) null else ctrl }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(if (ctrlLabs.isNotEmpty()) Green else Muted),
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(ctrl, color = Color.White, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                            Box(
-                                modifier = Modifier
-                                    .background(Green.copy(alpha = 0.14f), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                            ) {
-                                Text(
-                                    "${ctrlLabs.size}",
-                                    color = Green,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                )
-                            }
-                        }
-                        if (isExpanded) {
-                            ctrlLabs.forEach { lab ->
-                                ChallengeRow(lab, store.solved.containsKey(lab.id), onOpen)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ProgressScreen(store: ProgressStore, modifier: Modifier) {
+fun ProgressScreen(store: ProgressStore, modifier: Modifier = Modifier) {
+    val all = ChallengeCatalog.all
+    val totalPossible = all.sumOf { it.difficulty.points }
     val solvedCount = store.solved.size
-    val totalCount = all.size
-    val leftCount = totalCount - solvedCount
-    val maxPoints = Scoring.maxScore(all)
-    val pct = if (totalCount > 0) (solvedCount * 100) / totalCount else 0
-    val animatedFraction by animateFloatAsState(
-        targetValue = if (totalCount > 0) solvedCount.toFloat() / totalCount.toFloat() else 0f,
-        animationSpec = tween(durationMillis = 900),
-        label = "ring",
-    )
+    val totalHints = store.hints.values.sum()
 
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Bg),
-        contentPadding = PaddingValues(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Text(
-                "Progress",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(top = 4.dp),
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Kicker("OPERATOR TELEMETRY")
+                Text(
+                    "Assessment Ledger",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    letterSpacing = (-0.4).sp,
+                )
+            }
+        }
+
+        item {
+            TrustLedgerRow(
+                items = listOf(
+                    "${store.score()}/$totalPossible" to "Total Score",
+                    "$solvedCount/${all.size}" to "Labs Solved",
+                    "$totalHints" to "Hints Used",
+                ),
             )
         }
 
-        // Circular Progress Ring
         item {
-            Box(
-                modifier = Modifier
-                    .size(164.dp)
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val stroke = Stroke(width = 14.dp.toPx(), cap = StrokeCap.Round)
-                    drawArc(
-                        color = Color.White.copy(alpha = 0.08f),
-                        startAngle = 0f,
-                        sweepAngle = 360f,
-                        useCenter = false,
-                        style = stroke,
-                    )
-                    if (animatedFraction > 0f) {
-                        drawArc(
-                            brush = Brush.sweepGradient(listOf(Green, Accent, Color.White, Green)),
-                            startAngle = -90f,
-                            sweepAngle = 360f * animatedFraction,
-                            useCenter = false,
-                            style = stroke,
+            Card {
+                Kicker("BY DIFFICULTY TIER")
+                Difficulty.entries.forEach { d ->
+                    val list = all.filter { it.difficulty == d }
+                    val done = list.count { store.isSolved(it.id) }
+                    val pct = if (list.isEmpty()) 0f else done.toFloat() / list.size
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "${d.label.uppercase()} (${d.points} PTS)",
+                            fontSize = 11.5.sp,
+                            color = difficultyColor(d),
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                        Text(
+                            "$done / ${list.size}",
+                            fontSize = 11.5.sp,
+                            color = TextPrimary,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(LineSubtle),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(pct.coerceIn(0f, 1f))
+                                .fillMaxHeight()
+                                .background(difficultyColor(d)),
                         )
                     }
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "$solvedCount",
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                    Text("of $totalCount", fontSize = 13.sp, color = Muted)
-                }
             }
         }
 
-        // 3 Stat pills: Completed, Left, Score %
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                ProgressPill(
-                    icon = IconKind.Check,
-                    value = "$solvedCount",
-                    label = "Completed",
-                    color = Green,
-                    modifier = Modifier.weight(1f),
-                )
-                ProgressPill(
-                    icon = IconKind.Clock,
-                    value = "$leftCount",
-                    label = "Left",
-                    color = Accent,
-                    modifier = Modifier.weight(1f),
-                )
-                ProgressPill(
-                    icon = IconKind.Chart,
-                    value = "$pct%",
-                    label = "${store.score()} / $maxPoints pts",
-                    color = Color.White,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-
-        // Achievements card
         item {
             Card {
-                Text("Achievements", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Area.entries.forEach { a ->
-                        val catLabs = all.filter { it.area == a }
-                        val catDone = catLabs.count { store.solved.containsKey(it.id) }
-                        val unlocked = catLabs.isNotEmpty() && catDone == catLabs.size
-                        Column(
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (unlocked) Green.copy(alpha = 0.18f)
-                                        else Color.White.copy(alpha = 0.06f)
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                EvilIcon(
-                                    kind = if (unlocked) IconKind.Check else IconKind.Lock,
-                                    tint = if (unlocked) Green else Muted,
-                                    size = 22.dp,
-                                )
-                            }
-                            Text(
-                                a.label,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (unlocked) Color.White else Muted,
-                            )
-                            Text(
-                                "$catDone/${catLabs.size}",
-                                fontSize = 10.sp,
-                                color = if (unlocked) Green else Muted,
-                            )
-                        }
+                Kicker("BY MASVS DOMAIN")
+                Area.entries.forEach { area ->
+                    val list = all.filter { it.area == area }
+                    val done = list.count { store.isSolved(it.id) }
+                    val pct = if (list.isEmpty()) 0f else done.toFloat() / list.size
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            "${area.label} (${area.masvsCategory})",
+                            fontSize = 12.sp,
+                            color = TextPrimary,
+                        )
+                        Text(
+                            "$done/${list.size}",
+                            fontSize = 11.5.sp,
+                            color = Muted,
+                            fontFamily = FontFamily.Monospace,
+                        )
                     }
-                }
-            }
-        }
-
-        // Category breakdown bars
-        item {
-            Card {
-                Area.entries.forEach { a ->
-                    val list = all.filter { it.area == a }
-                    val done = list.count { store.solved.containsKey(it.id) }
-                    val frac = if (list.isNotEmpty()) done.toFloat() / list.size else 0f
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(Modifier.fillMaxWidth()) {
-                            Text(a.label, color = Color.White, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                            Text("$done/${list.size}", color = Muted, fontSize = 13.sp)
-                        }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(LineSubtle),
+                    ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color.White.copy(alpha = 0.08f)),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(frac)
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(
-                                        Brush.horizontalGradient(listOf(Green, Color.White))
-                                    ),
-                            )
-                        }
+                                .fillMaxWidth(pct.coerceIn(0f, 1f))
+                                .fillMaxHeight()
+                                .background(Mono100),
+                        )
                     }
                 }
             }
-        }
-
-        item {
-            Text(
-                "v${BuildConfig.VERSION_NAME} · EvilCorp Android",
-                fontSize = 11.sp,
-                color = Muted,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProgressPill(
-    icon: IconKind,
-    value: String,
-    label: String,
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        color = Panel,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, CardBorder),
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 14.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            EvilIcon(icon, tint = color, size = 20.dp)
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
-            Text(label, fontSize = 11.sp, color = Muted, maxLines = 1)
         }
     }
 }

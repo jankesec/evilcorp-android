@@ -25,23 +25,25 @@ enum class IconKind {
 
 fun challengeIcon(id: String, area: Area): IconKind = when (id) {
     "prefs", "backup", "external", "pathtraversal" -> IconKind.Folder
-    "sqli", "httpcache" -> IconKind.Database
-    "secrets", "keystore", "pin" -> IconKind.Key
-    "logging", "antidebug", "tampering" -> IconKind.Terminal
-    "crypto", "random" -> IconKind.Lock
-    "webview", "webviewfile", "deeplink", "intentredirect" -> IconKind.Code
-    "provider", "broadcast", "pendingintent" -> IconKind.Flask
-    "root", "biometric" -> IconKind.Shield
-    "cleartext", "sslpinning" -> IconKind.Network
+    "sqli", "httpcache", "serialization" -> IconKind.Database
+    "secrets", "keystore", "pin", "jwt", "stepup" -> IconKind.Key
+    "logging", "antidebug", "tampering", "nativebridge" -> IconKind.Terminal
+    "crypto", "random", "ivreuse" -> IconKind.Lock
+    "webview", "webviewfile", "deeplink", "intentredirect", "dexload" -> IconKind.Code
+    "provider", "broadcast", "pendingintent", "strandhogg" -> IconKind.Flask
+    "root", "biometric", "emulator", "repackaging" -> IconKind.Shield
+    "cleartext", "sslpinning", "trustmanager" -> IconKind.Network
     "clipboard", "keyboard", "memory" -> IconKind.Copy
-    "screenshot", "tapjacking" -> IconKind.Eye
+    "screenshot", "tapjacking", "tracking", "notifications" -> IconKind.Eye
     else -> when (area) {
         Area.Storage -> IconKind.Folder
         Area.Crypto -> IconKind.Lock
         Area.Network -> IconKind.Network
         Area.Auth -> IconKind.Key
         Area.Platform -> IconKind.Code
+        Area.Code -> IconKind.Terminal
         Area.Resilience -> IconKind.Shield
+        Area.Privacy -> IconKind.Eye
     }
 }
 

@@ -9,8 +9,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Process
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,9 +27,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,26 +77,31 @@ fun MoreScreen(store: ProgressStore, modifier: Modifier = Modifier) {
 @Composable
 private fun MoreMenuView(modifier: Modifier, onNavigate: (MorePage) -> Unit) {
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Bg),
-        contentPadding = PaddingValues(16.dp),
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Operator Toolkit", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.White)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Kicker("ENGINEERING & DIAGNOSTICS")
                 Text(
-                    "Live runtime diagnostics, device posture and exploitation reference",
-                    fontSize = 13.sp,
+                    "Operator Toolkit",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    letterSpacing = (-0.4).sp,
+                )
+                Text(
+                    "Live runtime diagnostics, device posture and exploitation reference.",
+                    fontSize = 12.5.sp,
                     color = Muted,
                 )
             }
         }
         item {
             MoreMenuCard(
-                icon = IconKind.Terminal,
-                iconTint = Green,
+                index = "01",
+                category = "runtime telemetry",
                 title = "Live Security Console",
                 subtitle = "Inspect real-time auth, SQL, IPC and exploit events (${LogStore.entries.size} lines)",
                 badge = "LIVE",
@@ -105,21 +111,21 @@ private fun MoreMenuView(modifier: Modifier, onNavigate: (MorePage) -> Unit) {
         }
         item {
             MoreMenuCard(
-                icon = IconKind.Phone,
-                iconTint = Cyan,
+                index = "02",
+                category = "environment audit",
                 title = "Device Intelligence",
                 subtitle = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · ${Build.MODEL} · Root & debug posture",
                 badge = "API ${Build.VERSION.SDK_INT}",
-                badgeColor = Cyan,
+                badgeColor = Mono100,
                 onClick = { onNavigate(MorePage.Device) },
             )
         }
         item {
             MoreMenuCard(
-                icon = IconKind.Code,
-                iconTint = Accent,
+                index = "03",
+                category = "instrumentation",
                 title = "Frida, Resources & Settings",
-                subtitle = "Searchable 30-script Frida/ADB library, OWASP MASTG links and progress reset",
+                subtitle = "Searchable ${ChallengeCatalog.all.size}-script Frida/ADB library, OWASP MASTG links and progress reset",
                 badge = "${ChallengeCatalog.all.size} SCRIPTS",
                 badgeColor = Accent,
                 onClick = { onNavigate(MorePage.Extras) },
@@ -130,59 +136,76 @@ private fun MoreMenuView(modifier: Modifier, onNavigate: (MorePage) -> Unit) {
 
 @Composable
 private fun MoreMenuCard(
-    icon: IconKind,
-    iconTint: Color,
+    index: String,
+    category: String,
     title: String,
     subtitle: String,
     badge: String,
     badgeColor: Color,
     onClick: () -> Unit,
 ) {
-    Surface(
+    val shape = RoundedCornerShape(8.dp)
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = Panel,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, CardBorder),
+            .clip(shape)
+            .background(Panel)
+            .border(1.dp, CardBorder, shape)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
-            modifier = Modifier.padding(15.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconTint.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                EvilIcon(icon, tint = iconTint, size = 21.dp)
+                Box(Modifier.size(5.dp).clip(CircleShape).background(Mono100))
+                Text(
+                    text = category.uppercase(),
+                    color = Mono100,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 0.9.sp,
+                )
             }
-            Spacer(Modifier.width(14.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        title,
-                        fontSize = 15.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    BadgeView(badge, badgeColor)
-                }
-                Text(subtitle, fontSize = 12.5.sp, color = Muted, lineHeight = 17.sp)
-            }
-            Spacer(Modifier.width(8.dp))
-            EvilIcon(IconKind.ChevronRight, tint = Muted, size = 16.dp)
+            Text(
+                text = index,
+                color = Muted,
+                fontSize = 10.5.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+            )
+            Text(
+                text = subtitle,
+                fontSize = 12.5.sp,
+                color = Muted,
+                lineHeight = 18.sp,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BadgeView(badge, badgeColor)
+            Text(
+                text = "↗",
+                color = Mono100,
+                fontSize = 14.sp,
+                fontFamily = FontFamily.Monospace,
+            )
         }
     }
 }
@@ -196,9 +219,15 @@ private fun SubpageBackHeader(backLabel: String = "More", onBack: () -> Unit) {
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        EvilIcon(IconKind.ChevronLeft, tint = Color.White, size = 20.dp)
-        Spacer(Modifier.width(4.dp))
-        Text(backLabel, fontSize = 17.sp, color = Color.White)
+        Text("←", color = Mono100, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = backLabel.uppercase(),
+            fontSize = 11.sp,
+            color = Mono100,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 1.sp,
+        )
     }
 }
 
@@ -212,30 +241,35 @@ private fun ConsoleView(modifier: Modifier, onBack: () -> Unit) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
             .padding(horizontal = 16.dp),
     ) {
         SubpageBackHeader(onBack = onBack)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp),
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 "Console",
-                fontSize = 24.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = TextPrimary,
                 modifier = Modifier.weight(1f),
             )
+            GhostButton("Test Log") {
+                LogStore.append("[TEST] Console active · PID: ${Process.myPid()}")
+            }
+            Spacer(Modifier.width(8.dp))
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Panel)
+                    .border(1.dp, LineStrong, RoundedCornerShape(6.dp))
                     .clickable { LogStore.clear() }
                     .padding(8.dp),
             ) {
-                EvilIcon(IconKind.Trash, tint = Red, size = 20.dp)
+                EvilIcon(IconKind.Trash, tint = Red, size = 16.dp)
             }
         }
 
@@ -243,54 +277,83 @@ private fun ConsoleView(modifier: Modifier, onBack: () -> Unit) {
             value = filter,
             onValueChange = { filter = it },
             singleLine = true,
-            leadingIcon = { EvilIcon(IconKind.Search, tint = Muted, size = 18.dp) },
-            placeholder = { Text("Filter...", color = Muted) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            shape = RoundedCornerShape(12.dp),
-        )
-
-        Box(
+            leadingIcon = { EvilIcon(IconKind.Search, tint = Muted, size = 16.dp) },
+            placeholder = {
+                Text("Filter log stream...", color = Muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 6.dp),
-            contentAlignment = Alignment.Center,
+            shape = RoundedCornerShape(6.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Panel,
+                unfocusedContainerColor = Panel,
+                focusedBorderColor = Mono100,
+                unfocusedBorderColor = CardBorder,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+            ),
+        )
+
+        val shape = RoundedCornerShape(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 14.dp)
+                .clip(shape)
+                .background(CodeBg)
+                .border(1.dp, CardBorder, shape),
         ) {
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable {
-                        LogStore.append("[TEST] Console active · PID: ${Process.myPid()}")
-                    }
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .fillMaxWidth()
+                    .background(Elevated)
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text("▶", color = Green, fontSize = 12.sp)
-                Text("Test Log", color = Green, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            }
-        }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            itemsIndexed(filtered) { _, line ->
-                val color = when {
-                    line.contains("ERROR") || line.contains("DENIED") -> Red
-                    line.contains("[TEST]") || line.contains("[SOLVED]") -> Green
-                    line.contains("[HINT]") || line.contains("[CTF]") -> Accent
-                    else -> Color(0xFFD0D0DC)
-                }
+                Box(Modifier.size(8.dp).clip(CircleShape).background(Mono200))
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.size(8.dp).clip(CircleShape).background(Mono500))
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF4D4D4D)))
+                Spacer(Modifier.width(10.dp))
                 Text(
-                    text = line,
-                    color = color,
-                    fontSize = 11.5.sp,
-                    lineHeight = 16.sp,
+                    "logcat — com.evilcorp.android",
+                    color = Muted,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${filtered.size} LINES",
+                    color = Mono100,
+                    fontSize = 9.5.sp,
                     fontFamily = FontFamily.Monospace,
                 )
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(LineSubtle))
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp),
+                contentPadding = PaddingValues(vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                itemsIndexed(filtered) { _, line ->
+                    val color = when {
+                        line.contains("ERROR") || line.contains("DENIED") -> Red
+                        line.contains("[TEST]") || line.contains("[SOLVED]") -> Green
+                        line.contains("[HINT]") || line.contains("[CTF]") -> Accent
+                        else -> TextSoft
+                    }
+                    Text(
+                        text = line,
+                        color = color,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.sp,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
             }
         }
     }
@@ -335,44 +398,53 @@ private fun DeviceIntelligenceView(modifier: Modifier, onBack: () -> Unit) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
             .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item { SubpageBackHeader(onBack = onBack) }
         item {
-            Text(
-                "Device Intelligence",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(vertical = 6.dp),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Kicker("CHECKSEC // POSTURE")
+                Text(
+                    "Device Intelligence",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                )
+            }
         }
-        items(rows, key = { it.first }) { (key, value) ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Panel,
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, CardBorder),
+        item {
+            val shape = RoundedCornerShape(8.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(Panel)
+                    .border(1.dp, CardBorder, shape),
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        key,
-                        color = Muted,
-                        fontSize = 14.sp,
-                        modifier = Modifier.width(126.dp),
-                    )
-                    Text(
-                        value,
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
+                rows.forEachIndexed { idx, (key, value) ->
+                    if (idx > 0) {
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(LineSubtle))
+                    }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            key.uppercase(),
+                            color = Muted,
+                            fontSize = 10.5.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.width(126.dp),
+                        )
+                        Text(
+                            value,
+                            color = TextPrimary,
+                            fontSize = 12.5.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
                 }
             }
         }
@@ -387,12 +459,11 @@ private fun ExtrasView(store: ProgressStore, modifier: Modifier, onBack: () -> U
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
             .padding(horizontal = 16.dp),
     ) {
         SubpageBackHeader(onBack = onBack)
         SegmentedControl(tabs = tabs, selectedIndex = tab, onSelect = { tab = it })
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
         when (tab) {
             0 -> FridaLibrarySubView()
             1 -> ResourcesSubView()
@@ -408,35 +479,34 @@ fun SegmentedControl(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = Panel,
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, CardBorder),
+    val shape = RoundedCornerShape(6.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Panel)
+            .border(1.dp, CardBorder, shape)
+            .padding(3.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(3.dp),
-        ) {
-            tabs.forEachIndexed { index, title ->
-                val selected = index == selectedIndex
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (selected) Elevated else Color.Transparent)
-                        .clickable { onSelect(index) }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = title,
-                        color = if (selected) Color.White else Muted,
-                        fontSize = 13.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                    )
-                }
+        tabs.forEachIndexed { index, title ->
+            val selected = index == selectedIndex
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (selected) Mono100 else Color.Transparent)
+                    .clickable { onSelect(index) }
+                    .padding(vertical = 7.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = title.uppercase(),
+                    color = if (selected) Bg else Muted,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    letterSpacing = 0.6.sp,
+                )
             }
         }
     }
@@ -459,13 +529,21 @@ private fun FridaLibrarySubView() {
             value = search,
             onValueChange = { search = it },
             singleLine = true,
-            leadingIcon = { EvilIcon(IconKind.Search, tint = Muted, size = 18.dp) },
-            placeholder = { Text("Search scripts...", color = Muted) },
+            leadingIcon = { EvilIcon(IconKind.Search, tint = Muted, size = 16.dp) },
+            placeholder = { Text("Search scripts...", color = Muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(6.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Panel,
+                unfocusedContainerColor = Panel,
+                focusedBorderColor = Mono100,
+                unfocusedBorderColor = CardBorder,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+            ),
         )
         Spacer(Modifier.height(8.dp))
-        Text("${filtered.size} scripts", color = Muted, fontSize = 12.sp)
+        Text("${filtered.size} SCRIPTS", color = Muted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
         Spacer(Modifier.height(6.dp))
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -473,37 +551,22 @@ private fun FridaLibrarySubView() {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             items(filtered, key = { it.id }) { c ->
-                Card {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(c.title, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color.White)
-                            Text(
-                                "${c.cwe} · ${c.masvs} · ${c.maswe}",
-                                fontSize = 11.sp,
-                                color = Muted,
-                                fontFamily = FontFamily.Monospace,
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Elevated)
-                                .clickable {
-                                    val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    cm.setPrimaryClip(ClipData.newPlainText(c.id, c.tooling))
-                                    copiedId = c.id
-                                }
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
-                        ) {
-                            Text(
-                                if (copiedId == c.id) "Copied" else "Copy",
-                                color = if (copiedId == c.id) Green else Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                    Mono(c.tooling, color = Accent)
+                LpCodeWindow(
+                    title = "${c.cwe} · ${c.title}",
+                    actionText = if (copiedId == c.id) "COPIED" else "COPY",
+                    onClick = {
+                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        cm.setPrimaryClip(ClipData.newPlainText(c.id, c.tooling))
+                        copiedId = c.id
+                    },
+                ) {
+                    Text(
+                        text = c.tooling,
+                        color = TextSoft,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 16.sp,
+                    )
                 }
             }
         }
@@ -538,30 +601,31 @@ private fun ResourcesSubView() {
     ) {
         sections.forEach { (header, links) ->
             item {
-                Text(header, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Kicker(header)
             }
             items(links, key = { it.first }) { (title, url) ->
-                Surface(
+                val shape = RoundedCornerShape(6.dp)
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(shape)
+                        .background(Panel)
+                        .border(1.dp, CardBorder, shape)
                         .clickable {
                             runCatching {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                             }
                         },
-                    color = Panel,
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, CardBorder),
                 ) {
                     Row(
                         Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            Text(url, color = Muted, fontSize = 11.sp)
+                            Text(title, color = TextPrimary, fontSize = 13.5.sp, fontWeight = FontWeight.Medium)
+                            Text(url, color = Muted, fontSize = 10.5.sp, fontFamily = FontFamily.Monospace)
                         }
-                        EvilIcon(IconKind.ChevronRight, tint = Muted, size = 16.dp)
+                        Text("↗", color = Mono100, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                     }
                 }
             }
@@ -587,10 +651,10 @@ private fun SettingsSubView(store: ProgressStore) {
                         .clickable { confirmReset = true },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    EvilIcon(IconKind.Trash, tint = Red, size = 20.dp)
+                    EvilIcon(IconKind.Trash, tint = Red, size = 18.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Reset Progress", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Reset Progress", color = TextPrimary, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold)
                         Text("Clear all solved labs, hints, bookmarks and CTF score", color = Muted, fontSize = 12.sp)
                     }
                 }
@@ -616,27 +680,28 @@ private fun SettingsSubView(store: ProgressStore) {
                 }
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    EvilIcon(IconKind.Code, tint = Color.White, size = 20.dp)
+                    EvilIcon(IconKind.Code, tint = Mono100, size = 18.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("GitHub Repository", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("github.com/jankesec/evilcorp-android", color = Muted, fontSize = 12.sp)
+                        Text("GitHub Repository", color = TextPrimary, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text("github.com/jankesec/evilcorp-android", color = Muted, fontSize = 11.5.sp, fontFamily = FontFamily.Monospace)
                     }
-                    EvilIcon(IconKind.ChevronRight, tint = Muted, size = 16.dp)
+                    Text("↗", color = Mono100, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
                 }
             }
         }
         item {
             Card {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    EvilIcon(IconKind.Shield, tint = Green, size = 20.dp)
+                    EvilIcon(IconKind.Shield, tint = Mono100, size = 18.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Build Info", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Build Info", color = TextPrimary, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             "v${BuildConfig.VERSION_NAME} · ${ChallengeCatalog.all.size} Challenges · OWASP MASVS v2",
                             color = Muted,
-                            fontSize = 12.sp,
+                            fontSize = 11.5.sp,
+                            fontFamily = FontFamily.Monospace,
                         )
                     }
                 }

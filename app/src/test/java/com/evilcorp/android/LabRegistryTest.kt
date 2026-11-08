@@ -1,10 +1,18 @@
 package com.evilcorp.android
 
+import com.evilcorp.android.labs.ApkSignatureVerifier
 import com.evilcorp.android.labs.Flags
 import com.evilcorp.android.labs.IntegrityGate
+import com.evilcorp.android.labs.JwtSessionVerifier
 import com.evilcorp.android.labs.LabRegistry
+import com.evilcorp.android.labs.NativeBridgeSim
+import com.evilcorp.android.labs.NonceReuseCrypto
 import com.evilcorp.android.labs.PinVault
+import com.evilcorp.android.labs.SessionTokenParcel
 import com.evilcorp.android.labs.SslPinValidator
+import com.evilcorp.android.labs.StepUpAuthController
+import com.evilcorp.android.labs.TaskStackInspector
+import com.evilcorp.android.labs.UnsafeDeserializer
 import com.evilcorp.android.labs.WeakKeystore
 import com.evilcorp.android.labs.WeakRandom
 import com.evilcorp.android.model.ChallengeCatalog
@@ -16,13 +24,13 @@ import java.nio.file.Files
 
 class LabRegistryTest {
     @Test fun everyCatalogEntryHasALabAndViceVersa() {
-        assertEquals(30, LabRegistry.entries.size)
+        assertEquals(42, LabRegistry.entries.size)
         assertEquals(ChallengeCatalog.all.map { it.id }.toSet(), LabRegistry.entries.keys)
     }
 
     @Test fun flagsAreUniqueAndWellFormed() {
         val flags = LabRegistry.entries.values.map { it.flag }
-        assertEquals(30, flags.toSet().size)
+        assertEquals(42, flags.toSet().size)
         flags.forEach { assertTrue(it, it.matches(Regex("EVILCORP\\{[A-Za-z0-9_]+}"))) }
     }
 
@@ -62,5 +70,47 @@ class LabRegistryTest {
         } finally {
             tmp.deleteRecursively()
         }
+    }
+
+    @Test fun jwtAlgNoneTokenIsAcceptedAsAdmin() {
+        assertFalse(JwtSessionVerifier.isAdminToken(JwtSessionVerifier.DEFAULT_GUEST_TOKEN))
+        assertTrue(JwtSessionVerifier.isAdminToken(JwtSessionVerifier.forgeAlgNoneAdminToken()))
+    }
+
+    @Test fun stepUpSkippedForInternalBatchChannel() {
+        assertFalse(StepUpAuthController.isStepUpSatisfied(250_000, "mobile_app", ""))
+        assertTrue(StepUpAuthController.isStepUpSatisfied(250_000, StepUpAuthController.TRUSTED_BATCH_CHANNEL, ""))
+    }
+
+    @Test fun staticIvTwoTimePadRecoversSecretFlag() {
+        val recovered = NonceReuseCrypto.recoverViaTwoTimePad(
+            NonceReuseCrypto.CIPHERTEXT_1_HEX,
+            NonceReuseCrypto.KNOWN_PLAINTEXT,
+            NonceReuseCrypto.CIPHERTEXT_2_HEX,
+        )
+        assertEquals(Flags.IVREUSE, recovered)
+    }
+
+    @Test fun unsafeDeserializationRestoresSuperAdminFlag() {
+        val b64 = UnsafeDeserializer.serializeToBase64(SessionTokenParcel("admin", isSuperAdmin = true))
+        val parsed = UnsafeDeserializer.deserializeFromBase64(b64)
+        assertTrue(parsed.isSuperAdmin)
+    }
+
+    @Test fun jniBufferOverflowCorruptsPrivilegeByte() {
+        assertFalse(NativeBridgeSim.jniParseBadge("jdoe").corruptedPrivilege)
+        assertTrue(NativeBridgeSim.jniParseBadge("A".repeat(17)).corruptedPrivilege)
+    }
+
+    @Test fun apkSignatureAndTaskAffinityChecksBehaveAsExpected() {
+        assertTrue(
+            ApkSignatureVerifier.isOfficialBuild(
+                ApkSignatureVerifier.OFFICIAL_CERT_SHA256,
+                ApkSignatureVerifier.EXPECTED_INSTALLER,
+            )
+        )
+        assertFalse(ApkSignatureVerifier.isOfficialBuild(ApkSignatureVerifier.DEBUG_CERT_SHA256, "adb"))
+        val hijacked = TaskStackInspector.simulateTaskReparenting(TaskStackInspector.VULNERABLE_AFFINITY, true)
+        assertTrue(hijacked.contains(Flags.STRANDHOGG))
     }
 }

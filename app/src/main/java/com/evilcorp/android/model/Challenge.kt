@@ -8,11 +8,17 @@ enum class Difficulty(val label: String, val points: Int) {
 
 enum class Area(val label: String) {
     Storage("Storage"),
+    Crypto("Crypto"),
     Auth("Auth"),
     Network("Network"),
-    Crypto("Crypto"),
     Platform("Platform"),
+    Code("Code"),
     Resilience("Resilience"),
+    Privacy("Privacy"),
+    ;
+
+    val masvsCategory: String
+        get() = "MASVS-${name.uppercase()}"
 }
 
 /**
@@ -28,6 +34,7 @@ data class Challenge(
     val cwe: String,
     val masvs: String,
     val maswe: String,
+    val mastg: String,
     val cvss: String,
     val hints: List<String>,
     /** adb / Frida / shell snippet used as a teaching aid. */
