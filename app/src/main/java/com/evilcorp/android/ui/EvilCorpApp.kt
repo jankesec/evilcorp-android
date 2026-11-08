@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,18 +24,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evilcorp.android.data.ProgressStore
 import com.evilcorp.android.model.ChallengeCatalog
 
-private enum class Tab(val label: String, val icon: IconKind) {
-    Home("Home", IconKind.Home),
-    Labs("Labs", IconKind.Grid),
-    Masvs("MASVS", IconKind.Checklist),
-    Progress("Progress", IconKind.Chart),
-    More("More", IconKind.More),
+private enum class Tab(val label: String, val hudSection: String, val icon: IconKind) {
+    Home("Home", "home", IconKind.Home),
+    Labs("Labs", "labs", IconKind.Grid),
+    Masvs("MASVS", "masvs", IconKind.Checklist),
+    Progress("Progress", "telemetry", IconKind.Chart),
+    More("More", "toolkit", IconKind.More),
 }
 
 @Composable
@@ -58,19 +60,29 @@ fun EvilCorpApp(store: ProgressStore) {
 
     LiquidBackdrop {
         Scaffold(
-            containerColor = Bg,
+            containerColor = Color.Transparent,
+            topBar = {
+                Column(Modifier.statusBarsPadding()) {
+                    JankesecHeader(
+                        section = tab.hudSection,
+                        score = store.score(),
+                        solvedCount = store.solved.size,
+                        totalCount = ChallengeCatalog.all.size,
+                    )
+                }
+            },
             bottomBar = {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(BgSoft)
+                        .background(Color(0xF5050505))
                         .navigationBarsPadding(),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(CardBorder),
+                            .background(LineSubtle),
                     )
                     Row(
                         modifier = Modifier
@@ -90,22 +102,24 @@ fun EvilCorpApp(store: ProgressStore) {
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .width(24.dp)
+                                        .width(26.dp)
                                         .height(2.dp)
-                                        .background(if (selected) TextPrimary else Color.Transparent),
+                                        .background(if (selected) Mono100 else Color.Transparent),
                                 )
                                 Spacer(Modifier.height(7.dp))
                                 EvilIcon(
                                     kind = t.icon,
-                                    tint = if (selected) TextPrimary else Muted,
-                                    size = 20.dp,
+                                    tint = if (selected) Mono100 else Muted,
+                                    size = 18.dp,
                                 )
                                 Spacer(Modifier.height(3.dp))
                                 Text(
-                                    text = t.label,
-                                    fontSize = 11.sp,
-                                    color = if (selected) TextPrimary else Muted,
-                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    text = t.label.uppercase(),
+                                    fontSize = 9.5.sp,
+                                    color = if (selected) Mono100 else Muted,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                    fontFamily = FontFamily.Monospace,
+                                    letterSpacing = 0.7.sp,
                                 )
                             }
                         }

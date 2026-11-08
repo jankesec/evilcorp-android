@@ -1,6 +1,7 @@
 package com.evilcorp.android.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontFamily
@@ -45,9 +48,9 @@ import com.evilcorp.android.model.Difficulty
 import kotlinx.coroutines.delay
 
 fun difficultyColor(d: Difficulty): Color = when (d) {
-    Difficulty.Easy -> Green
-    Difficulty.Medium -> Amber
-    Difficulty.Hard -> Red
+    Difficulty.Easy -> Cyan        // --sev-low: #7fa8d4
+    Difficulty.Medium -> SevMedium // --sev-medium: #c9a9d4
+    Difficulty.Hard -> Red         // --sev-critical: #e8615c
 }
 
 fun cvssNumericString(cvss: String): String =
@@ -56,25 +59,55 @@ fun cvssNumericString(cvss: String): String =
 fun cvssSeverityColor(cvss: String): Color {
     val score = cvssNumericString(cvss).toFloatOrNull() ?: 5.0f
     return when {
-        score >= 8.5f -> Red
-        score >= 7.0f -> Amber
-        score >= 4.0f -> Cyan
-        else -> Green
+        score >= 8.5f -> Red       // --sev-critical: #e8615c
+        score >= 7.0f -> Accent    // --sev-high: #e2854b
+        score >= 4.0f -> SevMedium // --sev-medium: #c9a9d4
+        else -> Cyan               // --sev-low: #7fa8d4
     }
 }
 
+/**
+ * Monochrome obsidian backdrop from https://jankesec.com:
+ * #040404 + subtle ctos-grid horizontal lines + soft top vignette.
+ */
 @Composable
 fun LiquidBackdrop(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    Box(modifier = modifier.fillMaxSize().background(Bg), content = content)
+    Box(modifier = modifier.fillMaxSize().background(Bg)) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val pitch = 30.dp.toPx()
+            var y = 0f
+            while (y < h) {
+                drawLine(
+                    color = Color(0x07FFFFFF),
+                    start = Offset(0f, y),
+                    end = Offset(w, y),
+                    strokeWidth = 1f,
+                )
+                y += pitch
+            }
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0x10FFFFFF), Color.Transparent),
+                    center = Offset(w * 0.5f, h * 0.12f),
+                    radius = w * 0.8f,
+                ),
+                center = Offset(w * 0.5f, h * 0.12f),
+                radius = w * 0.8f,
+            )
+        }
+        content()
+    }
 }
 
 fun Modifier.liquidGlass(
-    cornerRadius: Dp = 12.dp,
+    cornerRadius: Dp = 8.dp,
     shape: Shape = RoundedCornerShape(cornerRadius),
-    tint: Color = TextPrimary,
+    tint: Color = Mono100,
     baseAlpha: Float = 0.05f,
     rimAlpha: Float = 0.12f,
     tintStrength: Float = baseAlpha,
@@ -85,9 +118,9 @@ fun Modifier.liquidGlass(
 
 @Composable
 fun GlassOrb(
-    tint: Color = TextPrimary,
-    size: Dp = 40.dp,
-    cornerRadius: Dp = 10.dp,
+    tint: Color = Mono100,
+    size: Dp = 38.dp,
+    cornerRadius: Dp = 6.dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
@@ -95,11 +128,255 @@ fun GlassOrb(
         modifier = Modifier
             .size(size)
             .clip(shape)
-            .background(tint.copy(alpha = 0.12f))
-            .border(1.dp, tint.copy(alpha = 0.24f), shape),
+            .background(Elevated)
+            .border(1.dp, CardBorder, shape),
         contentAlignment = Alignment.Center,
         content = content,
     )
+}
+
+/**
+ * Compact single-bar top chrome in https://jankesec.com style:
+ * `evilcorp_` brand on left, section indicator + score pill on right.
+ */
+@Composable
+fun JankesecHeader(
+    section: String,
+    score: Int,
+    solvedCount: Int,
+    totalCount: Int,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xF2040404)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "evilcorp",
+                    color = TextPrimary,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.4).sp,
+                )
+                Text(
+                    text = "_",
+                    color = Muted,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                )
+                Spacer(Modifier.width(10.dp))
+                Box(Modifier.size(4.dp).clip(CircleShape).background(Muted))
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = section.uppercase(),
+                    color = Muted,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.4.sp,
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Elevated)
+                        .border(1.dp, LineSubtle, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        text = "$solvedCount/$totalCount",
+                        color = TextSoft,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Mono100)
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        text = "$score PTS",
+                        color = Bg,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(LineSubtle))
+    }
+}
+
+/** .kicker from https://jankesec.com: `── LABEL` in tracked uppercase monospace. */
+@Composable
+fun Kicker(text: String, color: Color = Mono100) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .width(18.dp)
+                .height(1.dp)
+                .background(color),
+        )
+        Text(
+            text = text.uppercase(),
+            color = color,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 1.5.sp,
+        )
+    }
+}
+
+/** .lp-code-window from https://jankesec.com with 3 monochrome window dots and terminal body. */
+@Composable
+fun LpCodeWindow(
+    title: String,
+    actionText: String = "",
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(8.dp)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(CodeBg)
+            .border(1.dp, CardBorder, shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Elevated)
+                .padding(horizontal = 14.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(7.dp).clip(CircleShape).background(Mono200))
+            Spacer(Modifier.width(5.dp))
+            Box(Modifier.size(7.dp).clip(CircleShape).background(Mono500))
+            Spacer(Modifier.width(5.dp))
+            Box(Modifier.size(7.dp).clip(CircleShape).background(Color(0xFF4D4D4D)))
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = title,
+                color = Muted,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            if (actionText.isNotEmpty()) {
+                Text(
+                    text = actionText.uppercase(),
+                    color = Mono100,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.6.sp,
+                )
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(LineSubtle))
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            content = content,
+        )
+    }
+}
+
+/** Circular CVSS score badge matching .home-cve-row .cve-score on https://jankesec.com. */
+@Composable
+fun CveScoreBadge(cvss: String) {
+    val color = cvssSeverityColor(cvss)
+    val shortScore = cvssNumericString(cvss)
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.13f))
+            .border(1.dp, color.copy(alpha = 0.35f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = shortScore,
+            color = color,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
+}
+
+/** .home-trust-row from https://jankesec.com: 3-column bordered stat ledger with 1px dividers. */
+@Composable
+fun TrustLedgerRow(items: List<Pair<String, String>>, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Panel)
+            .border(1.dp, LineStrong, shape)
+            .padding(vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        items.forEachIndexed { idx, (value, label) ->
+            if (idx > 0) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(32.dp)
+                        .background(LineSubtle),
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text = value,
+                    color = TextPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                )
+                Text(
+                    text = label.uppercase(),
+                    color = Muted,
+                    fontSize = 9.5.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 0.7.sp,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -111,11 +388,11 @@ fun Card(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = Panel,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, borderColor),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(15.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             content = content,
         )
@@ -124,19 +401,20 @@ fun Card(
 
 @Composable
 fun BadgeView(text: String, color: Color = TextSoft) {
-    val shape = RoundedCornerShape(6.dp)
+    val shape = RoundedCornerShape(4.dp)
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(color.copy(alpha = 0.12f))
-            .border(1.dp, color.copy(alpha = 0.28f), shape)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .background(color.copy(alpha = 0.11f))
+            .border(1.dp, color.copy(alpha = 0.30f), shape)
+            .padding(horizontal = 7.dp, vertical = 2.5.dp),
     ) {
         Text(
             text = text,
             color = color,
-            fontSize = 10.5.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Monospace,
             maxLines = 1,
             softWrap = false,
         )
@@ -152,12 +430,12 @@ fun Chip(text: String, color: Color = TextSoft) {
 fun FilterPill(
     text: String,
     selected: Boolean,
-    color: Color = TextPrimary,
+    color: Color = Mono100,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(8.dp)
-    val bg = if (selected) TextPrimary else Panel
-    val border = if (selected) TextPrimary else CardBorder
+    val shape = RoundedCornerShape(999.dp)
+    val bg = if (selected) Mono100 else Panel
+    val border = if (selected) Mono100 else LineStrong
     val fg = if (selected) Bg else TextSoft
     Box(
         modifier = Modifier
@@ -165,13 +443,13 @@ fun FilterPill(
             .background(bg)
             .border(1.dp, border, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 7.dp),
+            .padding(horizontal = 13.dp, vertical = 6.dp),
     ) {
         Text(
             text = text,
             color = fg,
-            fontSize = 12.5.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             softWrap = false,
         )
@@ -180,18 +458,12 @@ fun FilterPill(
 
 @Composable
 fun SectionTitle(text: String) {
-    Text(
-        text = text.uppercase(),
-        color = Muted,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.8.sp,
-    )
+    Kicker(text = text)
 }
 
 @Composable
 fun Mono(text: String, modifier: Modifier = Modifier, color: Color = TextSoft) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(6.dp)
     SelectionContainer {
         Text(
             text = text,
@@ -199,7 +471,7 @@ fun Mono(text: String, modifier: Modifier = Modifier, color: Color = TextSoft) {
                 .fillMaxWidth()
                 .clip(shape)
                 .background(CodeBg)
-                .border(1.dp, CardBorder, shape)
+                .border(1.dp, LineSubtle, shape)
                 .padding(12.dp),
             fontFamily = FontFamily.Monospace,
             fontSize = 11.5.sp,
@@ -211,35 +483,37 @@ fun Mono(text: String, modifier: Modifier = Modifier, color: Color = TextSoft) {
 
 @Composable
 fun Warning(text: String) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(6.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(Red.copy(alpha = 0.10f))
-            .border(1.dp, Red.copy(alpha = 0.30f), shape)
+            .border(1.dp, Red.copy(alpha = 0.35f), shape)
             .padding(12.dp),
     ) {
-        Text(text, color = Red, fontSize = 12.5.sp, lineHeight = 18.sp)
+        Text(text, color = Red, fontSize = 12.sp, lineHeight = 17.sp)
     }
 }
 
+/** .button-accent from https://jankesec.com: stark #F4F4F4 fill, #040404 text, 6dp radius. */
 @Composable
 fun PrimaryButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(6.dp)
     Box(
         modifier = modifier
             .clip(shape)
-            .background(TextPrimary)
+            .background(Mono100)
+            .border(1.dp, Mono100, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             color = Bg,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
+            fontSize = 12.5.sp,
             maxLines = 1,
             softWrap = false,
         )
@@ -253,13 +527,14 @@ fun AccentButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(6.dp)
     Row(
         modifier = modifier
             .clip(shape)
-            .background(TextPrimary)
+            .background(Mono100)
+            .border(1.dp, Mono100, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
@@ -271,29 +546,30 @@ fun AccentButton(
             text = text,
             color = Bg,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
+            fontSize = 12.5.sp,
             maxLines = 1,
             softWrap = false,
         )
     }
 }
 
+/** .button-ghost from https://jankesec.com: dark panel fill, 1px border, #F2F2F2 text. */
 @Composable
 fun GhostButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(6.dp)
     Box(
         modifier = modifier
             .clip(shape)
-            .background(Elevated)
-            .border(1.dp, CardBorder, shape)
+            .background(Panel)
+            .border(1.dp, LineStrong, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             color = TextPrimary,
-            fontSize = 12.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             softWrap = false,
@@ -306,13 +582,13 @@ fun StatCardView(
     value: String,
     label: String,
     icon: IconKind? = null,
-    iconColor: Color = TextPrimary,
+    iconColor: Color = Mono100,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier,
         color = Panel,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, CardBorder),
     ) {
         Column(
@@ -324,12 +600,15 @@ fun StatCardView(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
+                fontFamily = FontFamily.Monospace,
                 maxLines = 1,
             )
             Text(
-                text = label,
-                fontSize = 11.sp,
+                text = label.uppercase(),
+                fontSize = 9.5.sp,
                 color = Muted,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 0.7.sp,
                 maxLines = 1,
             )
         }
@@ -338,11 +617,7 @@ fun StatCardView(
 
 @Composable
 fun StatRow(vararg items: Pair<String, String>) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.forEach { (label, value) ->
-            StatCardView(value = value, label = label, modifier = Modifier.weight(1f))
-        }
-    }
+    TrustLedgerRow(items = items.map { (label, value) -> value to label })
 }
 
 @Composable
@@ -359,7 +634,7 @@ fun CtfBanner(store: ProgressStore) {
 
     val mins = elapsedSec / 60
     val secs = elapsedSec % 60
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(8.dp)
 
     if (minimized) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -367,18 +642,18 @@ fun CtfBanner(store: ProgressStore) {
                 Modifier
                     .clip(shape)
                     .background(Panel)
-                    .border(1.dp, CardBorder, shape)
+                    .border(1.dp, LineStrong, shape)
                     .clickable { minimized = false }
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Box(Modifier.size(6.dp).clip(CircleShape).background(Green))
+                Box(Modifier.size(6.dp).clip(CircleShape).background(Red))
                 Text(
-                    "CTF Active · ${mins}m ${secs}s · ${store.score()} pts",
-                    color = TextPrimary,
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Medium,
+                    "CTF · ${mins}m ${secs}s · ${store.score()} PTS",
+                    color = Mono100,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
                 )
             }
         }
@@ -387,7 +662,7 @@ fun CtfBanner(store: ProgressStore) {
             modifier = Modifier.fillMaxWidth(),
             color = Panel,
             shape = shape,
-            border = BorderStroke(1.dp, CardBorder),
+            border = BorderStroke(1.dp, LineStrong),
         ) {
             Row(
                 Modifier
@@ -401,29 +676,30 @@ fun CtfBanner(store: ProgressStore) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.clickable { minimized = true },
                 ) {
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(Green))
+                    Box(Modifier.size(6.dp).clip(CircleShape).background(Red))
                     Text(
-                        "CTF Session",
-                        color = TextPrimary,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        "CTF SESSION",
+                        color = Mono100,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
                     )
                 }
                 Text(
-                    "${mins}m ${secs}s · ${store.score()} pts · ${store.solved.size}/${ChallengeCatalog.all.size}",
+                    "${mins}m ${secs}s · ${store.score()} PTS · ${store.solved.size}/${ChallengeCatalog.all.size}",
                     color = TextSoft,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace,
                 )
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .background(Red.copy(alpha = 0.14f))
-                        .border(1.dp, Red.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                        .border(1.dp, Red.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
                         .clickable { store.stopCtf() }
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
-                    Text("End", color = Red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text("END", color = Red, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                 }
             }
         }
