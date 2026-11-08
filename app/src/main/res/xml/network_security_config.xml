@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  INTENTIONALLY INSECURE (lab: cleartext). Cleartext HTTP is permitted for every
+  domain and user-installed CAs are trusted, so a proxy CA is enough to MITM.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

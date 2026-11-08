@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Skull-ish shield glyph -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,26 C41,26 32,35 32,47 C32,55 36,61 41,65 L41,74 L67,74 L67,65 C72,61 76,55 76,47 C76,35 67,26 54,26 Z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M43,45 a5.5,6 0 1,0 11,0 a5.5,6 0 1,0 -11,0 Z M54,45 a5.5,6 0 1,0 11,0 a5.5,6 0 1,0 -11,0 Z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M47,66 h3 v8 h-3 Z M52.5,66 h3 v8 h-3 Z M58,66 h3 v8 h-3 Z" />
+</vector>
