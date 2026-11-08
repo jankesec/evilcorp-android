@@ -18,6 +18,10 @@ import com.evilcorp.android.ui.Red
 object NativeBridgeSim {
     const val BUFFER_SIZE = 16
 
+    init {
+        runCatching { System.loadLibrary("evilcorp_native") }
+    }
+
     data class NativeFrame(
         val usernameBytes: ByteArray,
         val isPrivilegedByte: Byte,

@@ -139,16 +139,21 @@ All network activity stays on the device loopback (`127.0.0.1:8080`, reachable v
 
 ```text
 .
-├── app/src/main/java/com/evilcorp/android/
-│   ├── model/        Challenge catalog (single source of truth) and scoring
-│   ├── labs/         42 self-contained security labs + flags + registry
-│   ├── data/         Local progress store and runtime security log
-│   └── ui/           Compose screens (Home, Labs, MASVS, Progress, More, Detail)
+├── app/src/main/
+│   ├── cpp/          C source for libevilcorp_native.so (Ghidra / IDA / Native Frida target)
+│   ├── jniLibs/      Prebuilt ARM64 & x86_64 ELF shared libraries (libevilcorp_native.so)
+│   └── java/com/evilcorp/android/
+│       ├── model/    Challenge catalog (single source of truth) and scoring
+│       ├── labs/     42 self-contained security labs + flags + registry
+│       ├── data/     Local progress store and runtime security log
+│       └── ui/       Compose screens (Home, Labs, MASVS, Progress, More, Detail)
 ├── app/src/test/     Catalog, scoring and flag invariants
+├── docs/             Instructor walkthrough & SAST/DAST benchmark matrix
 ├── frida/            Universal Frida instrumentation & bypass suite
+├── rules/            Semgrep SAST benchmark rules (semgrep-evilcorp.yml)
 ├── scripts/          Automated ADB exploit & IPC verification runner
 ├── Makefile          build / test / install / run / release
-└── .github/workflows/ci.yml
+└── .github/workflows/ci.yml & release.yml
 ```
 
 ## Author

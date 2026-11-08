@@ -1,0 +1,99 @@
+rules:
+  - id: evilcorp-android-raw-sql-injection
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      Concatenated SQL query passed to rawQuery/execSQL allows SQLite injection (CWE-89, MASWE-0079).
+      Use parameterized queries with '?' placeholders.
+    pattern-either:
+      - pattern: $DB.rawQuery("..." + $INPUT + "...", ...)
+      - pattern: $DB.rawQuery("...${$INPUT}...", ...)
+    metadata:
+      cwe: "CWE-89"
+      masvs: "MASVS-CODE-4"
+      maswe: "MASWE-0079"
+
+  - id: evilcorp-android-broken-crypto-ecb-or-md5
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      Use of broken or unauthenticated cryptographic primitive (AES/ECB or MD5) detected (CWE-327, MASWE-0020).
+      Prefer AES/GCM/NoPadding with AndroidKeyStore-backed keys or Argon2id/PBKDF2 for passwords.
+    pattern-either:
+      - pattern: Cipher.getInstance("AES/ECB/...")
+      - pattern: MessageDigest.getInstance("MD5")
+    metadata:
+      cwe: "CWE-327"
+      masvs: "MASVS-CRYPTO-1"
+      maswe: "MASWE-0020"
+
+  - id: evilcorp-android-insecure-random
+    languages: [kotlin]
+    severity: WARNING
+    message: >
+      java.util.Random is predictable when seeded or observed (CWE-338, MASWE-0027).
+      Use java.security.SecureRandom for security-sensitive tokens and nonces.
+    pattern: java.util.Random(...)
+    metadata:
+      cwe: "CWE-338"
+      masvs: "MASVS-CRYPTO-1"
+      maswe: "MASWE-0027"
+
+  - id: evilcorp-android-webview-javascript-interface
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      WebView exposes a @JavascriptInterface bridge (CWE-79, MASWE-0068). Ensure only trusted
+      origins are loaded and validate all bridge inputs.
+    pattern: $WV.addJavascriptInterface(...)
+    metadata:
+      cwe: "CWE-79"
+      masvs: "MASVS-PLATFORM-2"
+      maswe: "MASWE-0068"
+
+  - id: evilcorp-android-webview-universal-file-access
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      WebView enables allowUniversalAccessFromFileURLs or allowFileAccessFromFileURLs (CWE-200, MASWE-0070).
+    pattern-either:
+      - pattern: $SETTINGS.allowUniversalAccessFromFileURLs = true
+      - pattern: $SETTINGS.allowFileAccessFromFileURLs = true
+    metadata:
+      cwe: "CWE-200"
+      masvs: "MASVS-PLATFORM-2"
+      maswe: "MASWE-0070"
+
+  - id: evilcorp-android-mutable-pending-intent
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      PendingIntent created with FLAG_MUTABLE and an implicit Intent allows third-party apps
+      to hijack the target action or extras (CWE-927, MASWE-0065).
+    pattern: PendingIntent.getBroadcast($CTX, $CODE, $INTENT, ... or PendingIntent.FLAG_MUTABLE)
+    metadata:
+      cwe: "CWE-927"
+      masvs: "MASVS-PLATFORM-1"
+      maswe: "MASWE-0065"
+
+  - id: evilcorp-android-unsafe-object-input-stream
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      ObjectInputStream.readObject() on untrusted bytes permits arbitrary class instantiation (CWE-502, MASWE-0080).
+    pattern: ObjectInputStream($STREAM).readObject()
+    metadata:
+      cwe: "CWE-502"
+      masvs: "MASVS-CODE-4"
+      maswe: "MASWE-0080"
+
+  - id: evilcorp-android-unverified-dex-class-loader
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      Dynamic code loading via DexClassLoader without cryptographic signature verification (CWE-494, MASWE-0084).
+    pattern: DexClassLoader(...)
+    metadata:
+      cwe: "CWE-494"
+      masvs: "MASVS-CODE-2"
+      maswe: "MASWE-0084"
