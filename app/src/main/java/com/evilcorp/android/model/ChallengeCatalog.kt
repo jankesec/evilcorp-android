@@ -227,7 +227,7 @@ object ChallengeCatalog {
                 "Brute-force offline: for i in 0000..9999, compare md5(i) with the embedded hash.",
             ),
             tooling = "for i in \$(seq -w 0 9999); do\n" +
-                "  [ \"\$(printf \$i | md5)\" = \"<hash>\" ] && echo PIN=\$i && break\n" +
+                "  [ \"\$(printf \$i | md5)\" = \"88cf91a1aef212f3c2cd12406983427d\" ] && echo PIN=\$i && break\n" +
                 "done",
         ),
         Challenge(
@@ -242,6 +242,211 @@ object ChallengeCatalog {
             ),
             tooling = "adb exec-out screencap -p > shot.png\n" +
                 "adb shell screenrecord /sdcard/rec.mp4",
+        ),
+        Challenge(
+            id = "keystore", title = "PKCS#12 Keystore Misuse",
+            description = "A portable PKCS#12 file with a default password replaces AndroidKeyStore.",
+            difficulty = Difficulty.Medium, area = Area.Crypto,
+            cwe = "CWE-522", masvs = "CRYPTO-2", maswe = "MASWE-0013", cvss = "6.8 (Medium)",
+            hints = listOf(
+                "Provision the store first; it writes files/vault.p12 inside the app sandbox.",
+                "Inspect WeakKeystore in jadx to find KEYSTORE_PASS.",
+                "Enter the default Java keystore password 'changeit' or pull vault.p12 via run-as.",
+            ),
+            tooling = "adb shell run-as com.evilcorp.android cat files/vault.p12 > vault.p12\n" +
+                "keytool -list -v -keystore vault.p12 -storetype PKCS12 -storepass changeit",
+        ),
+        Challenge(
+            id = "backup", title = "Android Backup & Plaintext Files",
+            description = "Plaintext sync credentials in filesDir exposed by android:allowBackup=\"true\".",
+            difficulty = Difficulty.Easy, area = Area.Storage,
+            cwe = "CWE-312", masvs = "STORAGE-2", maswe = "MASWE-0008", cvss = "5.5 (Medium)",
+            hints = listOf(
+                "Press 'Write cloud sync config' to create the file in internal storage.",
+                "Check files/cloud_sync_config.json inside the sandbox.",
+                "adb shell run-as com.evilcorp.android cat files/cloud_sync_config.json",
+            ),
+            tooling = "adb shell run-as com.evilcorp.android cat files/cloud_sync_config.json\n" +
+                "adb backup -f backup.ab com.evilcorp.android",
+        ),
+        Challenge(
+            id = "sslpinning", title = "SSL Pinning Bypass",
+            description = "Client-side SPKI certificate pinning enforced by a single boolean check.",
+            difficulty = Difficulty.Hard, area = Area.Network,
+            cwe = "CWE-295", masvs = "NETWORK-2", maswe = "MASWE-0047", cvss = "5.9 (Medium)",
+            hints = listOf(
+                "SslPinValidator.verifyCertificatePin() compares the presented pin against EXPECTED_PIN.",
+                "Find SslPinValidator.EXPECTED_PIN in jadx or hook verifyCertificatePin() in Frida.",
+                "Expected pin: sha256/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+            ),
+            tooling = "// Frida\n" +
+                "Java.perform(() => {\n" +
+                "  const V = Java.use('com.evilcorp.android.labs.SslPinValidator');\n" +
+                "  V.verifyCertificatePin.implementation = function (pin) { return true; };\n" +
+                "});",
+        ),
+        Challenge(
+            id = "webviewfile", title = "WebView Universal File Access",
+            description = "WebView with allowFileAccess and allowUniversalAccessFromFileURLs reads sandbox files.",
+            difficulty = Difficulty.Hard, area = Area.Platform,
+            cwe = "CWE-200", masvs = "PLATFORM-2", maswe = "MASWE-0070", cvss = "7.5 (High)",
+            hints = listOf(
+                "The lab writes a confidential note to files/internal_audit.txt on launch.",
+                "The WebView allows loading file:// URLs directly.",
+                "Load file:///data/data/com.evilcorp.android/files/internal_audit.txt",
+            ),
+            tooling = "# Enter in the WebView URL bar:\n" +
+                "file:///data/data/com.evilcorp.android/files/internal_audit.txt",
+        ),
+        Challenge(
+            id = "biometric", title = "Biometric Auth Bypass",
+            description = "Event-bound biometric gate not tied to a Keystore CryptoObject.",
+            difficulty = Difficulty.Hard, area = Area.Auth,
+            cwe = "CWE-287", masvs = "AUTH-2", maswe = "MASWE-0033", cvss = "7.1 (High)",
+            hints = listOf(
+                "The vault checks BiometricGate.isBiometricVerified() without decrypting via Keystore.",
+                "Hook BiometricGate.isBiometricVerified() with Frida to return true, or check QA_PROP in jadx.",
+                "adb shell setprop debug.evilcorp.bio_override true",
+            ),
+            tooling = "// Frida\n" +
+                "Java.perform(() => {\n" +
+                "  const B = Java.use('com.evilcorp.android.labs.BiometricGate');\n" +
+                "  B.isBiometricVerified.implementation = function () { return true; };\n" +
+                "});\n\n" +
+                "# or exploit the leftover QA system property:\n" +
+                "adb shell setprop debug.evilcorp.bio_override true",
+        ),
+        Challenge(
+            id = "antidebug", title = "Debugger & Frida Detection",
+            description = "Telemetry key gated behind Debug.isDebuggerConnected, FLAG_DEBUGGABLE and TracerPid.",
+            difficulty = Difficulty.Hard, area = Area.Resilience,
+            cwe = "CWE-693", masvs = "RESILIENCE-4", maswe = "MASWE-0104", cvss = "4.3 (Medium)",
+            hints = listOf(
+                "AntiDebugCheck.isBeingDebugged() triggers because the training APK is debuggable.",
+                "Hook isBeingDebugged() in Frida to return false, or inspect QA_BYPASS_PROP in AntiDebugLab.kt.",
+                "adb shell setprop debug.evilcorp.allow_debug 1",
+            ),
+            tooling = "// Frida\n" +
+                "Java.perform(() => {\n" +
+                "  const A = Java.use('com.evilcorp.android.labs.AntiDebugCheck');\n" +
+                "  A.isBeingDebugged.implementation = function (ctx) { return false; };\n" +
+                "});\n\n" +
+                "# or set the QA property discovered in jadx:\n" +
+                "adb shell setprop debug.evilcorp.allow_debug 1",
+        ),
+        Challenge(
+            id = "keyboard", title = "Keyboard & IME Cache Leak",
+            description = "Predictive text caches sensitive recovery phrases in a personalized dictionary.",
+            difficulty = Difficulty.Easy, area = Area.Storage,
+            cwe = "CWE-200", masvs = "PLATFORM-3", maswe = "MASWE-0054", cvss = "4.3 (Medium)",
+            hints = listOf(
+                "Press 'Sync IME learned dictionary' to write the personalized suggestion cache.",
+                "Look for ime_learned_words.txt inside the app's files/ directory.",
+                "adb shell run-as com.evilcorp.android cat files/ime_learned_words.txt",
+            ),
+            tooling = "adb shell run-as com.evilcorp.android cat files/ime_learned_words.txt",
+        ),
+        Challenge(
+            id = "tampering", title = "Bytecode Tampering & Licensing",
+            description = "Enterprise feature flag gated by an XOR license check in IntegrityGate.",
+            difficulty = Difficulty.Hard, area = Area.Resilience,
+            cwe = "CWE-353", masvs = "RESILIENCE-2", maswe = "MASWE-0100", cvss = "5.3 (Medium)",
+            hints = listOf(
+                "Decompile IntegrityGate in TamperingLab.kt and inspect MASKED.",
+                "Each integer in MASKED is XORed with 0x5A to form the license string.",
+                "The decoded license key is EC-ENT-2026-PRO (or hook verifyLicense() to return true).",
+            ),
+            tooling = "python3 -c 'm=[0x1F,0x19,0x77,0x1F,0x14,0x0E,0x77,0x68,0x6A,0x68,0x6C,0x77,0x0A,0x08,0x15];print(\"\".join(chr(x^0x5A) for x in m))'\n\n" +
+                "// Frida\n" +
+                "Java.perform(() => {\n" +
+                "  Java.use('com.evilcorp.android.labs.IntegrityGate').verifyLicense.implementation = () => true;\n" +
+                "});",
+        ),
+        Challenge(
+            id = "httpcache", title = "HTTP Disk Cache Leak",
+            description = "Authenticated API responses are cached unencrypted under cache/http_cache/.",
+            difficulty = Difficulty.Medium, area = Area.Network,
+            cwe = "CWE-524", masvs = "STORAGE-2", maswe = "MASWE-0009", cvss = "5.5 (Medium)",
+            hints = listOf(
+                "Press 'Fetch /v1/account/statement' to populate the HTTP disk cache.",
+                "The UI redacts audit_token, but the raw response is stored under cache/http_cache/.",
+                "adb shell run-as com.evilcorp.android cat cache/http_cache/entry_statement_v1.0",
+            ),
+            tooling = "adb shell run-as com.evilcorp.android ls -la cache/http_cache/\n" +
+                "adb shell run-as com.evilcorp.android cat cache/http_cache/entry_statement_v1.0",
+        ),
+        Challenge(
+            id = "pendingintent", title = "Mutable PendingIntent Hijack",
+            description = "An implicit base Intent wrapped with FLAG_MUTABLE lets receivers hijack execution.",
+            difficulty = Difficulty.Hard, area = Area.Platform,
+            cwe = "CWE-927", masvs = "PLATFORM-1", maswe = "MASWE-0065", cvss = "7.8 (High)",
+            hints = listOf(
+                "Press 'Broadcast mutable PendingIntent' or trigger PendingIntentHijackReceiver via adb.",
+                "The receiver listens for com.evilcorp.android.ACTION_DISPATCH_PI.",
+                "Press 'Broadcast mutable PendingIntent', then 'Refresh capture log' (or check logcat EvilCorpPI).",
+            ),
+            tooling = "adb logcat -s EvilCorpPI:W\n" +
+                "adb shell am broadcast -a com.evilcorp.android.ACTION_DISPATCH_PI \\\n" +
+                "  --es hijack_mode hijack -n com.evilcorp.android/.labs.PendingIntentHijackReceiver",
+        ),
+        Challenge(
+            id = "tapjacking", title = "Tapjacking / Obscured Touch",
+            description = "Sensitive approval button accepts touches when covered by an overlay window.",
+            difficulty = Difficulty.Medium, area = Area.Platform,
+            cwe = "CWE-1021", masvs = "PLATFORM-3", maswe = "MASWE-0056", cvss = "6.1 (Medium)",
+            hints = listOf(
+                "Keep 'Simulated bait overlay: ON' and 'filterTouchesWhenObscured: OFF'.",
+                "Tap the green 'Tap Here to Claim Free Coffee' bait button.",
+                "Now toggle 'filterTouchesWhenObscured: ON' to see how Android blocks the obscured touch.",
+            ),
+            tooling = "// Verify in layouts or View code:\n" +
+                "view.filterTouchesWhenObscured = true\n" +
+                "window.setHideOverlayWindows(true) // API 31+",
+        ),
+        Challenge(
+            id = "memory", title = "Sensitive Data in Heap Memory",
+            description = "Clearing the UI leaves the master secret in an immutable String on the JVM heap.",
+            difficulty = Difficulty.Hard, area = Area.Storage,
+            cwe = "CWE-316", masvs = "STORAGE-2", maswe = "MASWE-0004", cvss = "6.2 (Medium)",
+            hints = listOf(
+                "Press '1. Load secret into memory', then '2. Lock & Clear Screen'.",
+                "Dump the Java heap with `adb shell am dumpheap` or read MemoryVault.retainedHeapSecret.",
+                "adb shell am dumpheap com.evilcorp.android /data/local/tmp/ec.hprof && adb pull /data/local/tmp/ec.hprof && strings ec.hprof | grep HEAP_MASTER_KEY",
+            ),
+            tooling = "adb shell am dumpheap com.evilcorp.android /data/local/tmp/ec.hprof\n" +
+                "adb pull /data/local/tmp/ec.hprof && strings ec.hprof | grep HEAP_MASTER_KEY\n\n" +
+                "// Frida\n" +
+                "Java.perform(() => {\n" +
+                "  console.log(Java.use('com.evilcorp.android.labs.MemoryVault').retainedHeapSecret.value);\n" +
+                "});",
+        ),
+        Challenge(
+            id = "intentredirect", title = "Intent Redirection",
+            description = "An exported proxy activity launches non-exported internal activities via extras.",
+            difficulty = Difficulty.Hard, area = Area.Platform,
+            cwe = "CWE-940", masvs = "PLATFORM-1", maswe = "MASWE-0061", cvss = "8.1 (High)",
+            hints = listOf(
+                "InternalAdminActivity has android:exported=\"false\" and cannot be started directly.",
+                "IntentRedirectActivity is exported and reads a string extra named 'target_class'.",
+                "adb shell am start -n com.evilcorp.android/.labs.IntentRedirectActivity --es target_class com.evilcorp.android.labs.InternalAdminActivity",
+            ),
+            tooling = "# Direct launch fails with SecurityException:\n" +
+                "adb shell am start -n com.evilcorp.android/.labs.InternalAdminActivity\n\n" +
+                "# Pivot via exported IntentRedirectActivity:\n" +
+                "adb shell am start -n com.evilcorp.android/.labs.IntentRedirectActivity \\\n" +
+                "  --es target_class com.evilcorp.android.labs.InternalAdminActivity",
+        ),
+        Challenge(
+            id = "pathtraversal", title = "Zip Slip / Path Traversal",
+            description = "Archive extraction joins paths without canonicalPath validation.",
+            difficulty = Difficulty.Hard, area = Area.Storage,
+            cwe = "CWE-22", masvs = "CODE-4", maswe = "MASWE-0081", cvss = "7.5 (High)",
+            hints = listOf(
+                "The importer writes to File(files/themes, entryName) without checking for '..'.",
+                "The vault unlocks when files/admin_override.flag contains UNLOCK.",
+                "Set filename to ../admin_override.flag and content to UNLOCK, then extract.",
+            ),
+            tooling = "# Filename:\n../admin_override.flag\n# Content:\nUNLOCK",
         ),
     )
 

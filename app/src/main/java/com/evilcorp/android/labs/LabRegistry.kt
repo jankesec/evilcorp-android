@@ -23,6 +23,20 @@ object LabRegistry {
         "clipboard" to LabEntry(Flags.CLIPBOARD) { ClipboardLab() },
         "pin" to LabEntry(Flags.PIN) { PinVaultLab() },
         "screenshot" to LabEntry(Flags.SCREENSHOT) { ScreenshotLab() },
+        "keystore" to LabEntry(Flags.KEYSTORE) { KeystoreLab() },
+        "backup" to LabEntry(Flags.BACKUP) { BackupLab() },
+        "sslpinning" to LabEntry(Flags.SSLPINNING) { SslPinningLab() },
+        "webviewfile" to LabEntry(Flags.WEBVIEWFILE) { WebViewFileLab() },
+        "biometric" to LabEntry(Flags.BIOMETRIC) { BiometricLab() },
+        "antidebug" to LabEntry(Flags.ANTIDEBUG) { AntiDebugLab() },
+        "keyboard" to LabEntry(Flags.KEYBOARD) { KeyboardCacheLab() },
+        "tampering" to LabEntry(Flags.TAMPERING) { TamperingLab() },
+        "httpcache" to LabEntry(Flags.HTTPCACHE) { HttpCacheLab() },
+        "pendingintent" to LabEntry(Flags.PENDINGINTENT) { PendingIntentLab() },
+        "tapjacking" to LabEntry(Flags.TAPJACKING) { TapjackingLab() },
+        "memory" to LabEntry(Flags.MEMORY) { MemoryLab() },
+        "intentredirect" to LabEntry(Flags.INTENTREDIRECT) { IntentRedirectLab() },
+        "pathtraversal" to LabEntry(Flags.PATHTRAVERSAL) { PathTraversalLab() },
     )
 
     fun isCorrect(id: String, submitted: String): Boolean =

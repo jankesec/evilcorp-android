@@ -7,10 +7,10 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/jankesec/evilcorp-android/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/jankesec/evilcorp-android/actions/workflows/ci.yml)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2-7F52FF?style=flat-square&logo=kotlin)](https://kotlinlang.org/)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-111?style=flat-square&logo=android)](https://developer.android.com/)
-[![Challenges](https://img.shields.io/badge/challenges-16-42d77d?style=flat-square)](#challenge-catalog)
+[![Challenges](https://img.shields.io/badge/challenges-30-42d77d?style=flat-square)](#challenge-catalog)
 [![License](https://img.shields.io/badge/license-MIT-111?style=flat-square)](LICENSE)
 
-Sixteen self-contained labs mapped to CWE, OWASP MASVS and MASWE, with progressive hints,
+Thirty self-contained labs mapped to CWE, OWASP MASVS and MASWE, with progressive hints,
 CTF flags and scoring, local progress tracking, and adb / Frida / jadx examples per lab.
 The Android companion to [evilcorp-ios](https://github.com/jankesec/evilcorp-ios).
 
@@ -88,6 +88,20 @@ emulator or a frida-gadget build.
 | 14 | Clipboard Leakage | Platform | Easy | CWE-200 · STORAGE-2 · MASWE-0053 |
 | 15 | Vulnerable Vault PIN | Auth | Hard | CWE-307 · AUTH-2 · MASWE-0036 |
 | 16 | Screenshot Leakage | Platform | Easy | CWE-200 · PLATFORM-3 · MASWE-0055 |
+| 17 | PKCS#12 Keystore Misuse | Crypto | Medium | CWE-522 · CRYPTO-2 · MASWE-0013 |
+| 18 | Android Backup & Plaintext Files | Storage | Easy | CWE-312 · STORAGE-2 · MASWE-0008 |
+| 19 | SSL Pinning Bypass | Network | Hard | CWE-295 · NETWORK-2 · MASWE-0047 |
+| 20 | WebView Universal File Access | Platform | Hard | CWE-200 · PLATFORM-2 · MASWE-0070 |
+| 21 | Biometric Auth Bypass | Auth | Hard | CWE-287 · AUTH-2 · MASWE-0033 |
+| 22 | Debugger & Frida Detection | Resilience | Hard | CWE-693 · RESILIENCE-4 · MASWE-0104 |
+| 23 | Keyboard & IME Cache Leak | Storage | Easy | CWE-200 · PLATFORM-3 · MASWE-0054 |
+| 24 | Bytecode Tampering & Licensing | Resilience | Hard | CWE-353 · RESILIENCE-2 · MASWE-0100 |
+| 25 | HTTP Disk Cache Leak | Network | Medium | CWE-524 · STORAGE-2 · MASWE-0009 |
+| 26 | Mutable PendingIntent Hijack | Platform | Hard | CWE-927 · PLATFORM-1 · MASWE-0065 |
+| 27 | Tapjacking / Obscured Touch | Platform | Medium | CWE-1021 · PLATFORM-3 · MASWE-0056 |
+| 28 | Sensitive Data in Heap Memory | Storage | Hard | CWE-316 · STORAGE-2 · MASWE-0004 |
+| 29 | Intent Redirection | Platform | Hard | CWE-940 · PLATFORM-1 · MASWE-0061 |
+| 30 | Zip Slip / Path Traversal | Storage | Hard | CWE-22 · CODE-4 · MASWE-0081 |
 
 Mappings are training metadata, not a formal compliance assessment. Confirm current OWASP
 definitions before using them in an audit or report.
@@ -96,11 +110,14 @@ definitions before using them in an audit or report.
 
 - `android:allowBackup="true"`, cleartext traffic allowed, user CAs trusted
   ([network_security_config.xml](app/src/main/res/xml/network_security_config.xml));
-- an exported `ContentProvider`, `BroadcastReceiver` and deep-link `Activity` without permissions;
-- a WebView with JavaScript and a `@JavascriptInterface` bridge plus remote debugging;
+- exported `ContentProvider`, `BroadcastReceiver`, deep-link `Activity`, and `IntentRedirectActivity`
+  without permissions, plus a non-exported `InternalAdminActivity` reachable via intent redirection;
+- mutable implicit `PendingIntent` broadcasts;
+- WebViews with JavaScript, a `@JavascriptInterface` bridge, remote debugging, and `file://` access;
 - no R8/ProGuard obfuscation on any build type;
-- hard-coded synthetic keys, static AES-ECB key, unsalted MD5 PIN verifier;
-- client-side authentication and root-detection decisions.
+- hard-coded synthetic keys, portable PKCS#12 store with default password, static AES-ECB key,
+  unsalted MD5 PIN verifier, and immutable `String` secrets retained on the heap;
+- client-side authentication, licensing, SSL pinning, anti-debugging, and root-detection decisions.
 
 All network activity stays on the device loopback (`127.0.0.1:8080`, reachable via
 `adb forward`). The app makes no external network calls and collects nothing.
@@ -111,7 +128,7 @@ All network activity stays on the device loopback (`127.0.0.1:8080`, reachable v
 .
 ├── app/src/main/java/com/evilcorp/android/
 │   ├── model/        Challenge catalog (single source of truth) and scoring
-│   ├── labs/         One file per lab + flags + registry
+│   ├── labs/         One file per lab (30 labs) + flags + registry
 │   ├── data/         Local progress store
 │   └── ui/           Compose screens (Home, Labs, MASVS, Progress, detail)
 ├── app/src/test/     Catalog, scoring and flag invariants

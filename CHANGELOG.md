@@ -2,7 +2,7 @@
 
 ## 0.1.0 (unreleased)
 
-- Initial release: 16 labs across Storage, Crypto, Platform, Network, Auth and Resilience.
+- Initial release: 30 labs across Storage, Crypto, Platform, Network, Auth and Resilience.
 - Central challenge catalog with CWE, OWASP MASVS v2 and MASWE mappings.
 - Progressive hints, CTF flag submission and scoring, local progress tracking.
 - adb, Frida, jadx and objection snippets for each lab.

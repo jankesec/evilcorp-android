@@ -1,7 +1,7 @@
 package com.evilcorp.android.labs
 
 /**
- * Synthetic CTF flags. These are training values, not real secrets.
+ * Synthetic CTF flags for all 30 labs. These are training values, not real secrets.
  * A flag is only meant to be obtained by exploiting the matching lab.
  */
 object Flags {
@@ -21,4 +21,18 @@ object Flags {
     const val CLIPBOARD = "EVILCORP{cl1pb04rd_1s_sh4r3d_st4t3}"
     const val PIN = "EVILCORP{4_d1g1t_p1n_n0_l0ck0ut}"
     const val SCREENSHOT = "EVILCORP{n0_FLAG_S3CUR3_s0_sn4p}"
+    const val KEYSTORE = "EVILCORP{pkcs12_d3f4ult_p4ss_ch4ng31t}"
+    const val BACKUP = "EVILCORP{4ll0w_b4ckup_3xp0s3s_f1l3s}"
+    const val SSLPINNING = "EVILCORP{ssl_p1nn1ng_h00k_byp4ss3d}"
+    const val WEBVIEWFILE = "EVILCORP{w3bv13w_f1l3_sch3m3_l34k}"
+    const val BIOMETRIC = "EVILCORP{3v3nt_b0und_b10m3tr1c_byp4ss}"
+    const val ANTIDEBUG = "EVILCORP{d3bugg3r_ch3ck_n3utr4l1z3d}"
+    const val KEYBOARD = "EVILCORP{1m3_d1ct10n4ry_c4ch3d_s3cr3t}"
+    const val TAMPERING = "EVILCORP{sm4l1_p4tch_0r_k3yg3n_w1ns}"
+    const val HTTPCACHE = "EVILCORP{http_d1sk_c4ch3_n0_st0r3}"
+    const val PENDINGINTENT = "EVILCORP{mut4bl3_p3nd1ng_1nt3nt_h1j4ck}"
+    const val TAPJACKING = "EVILCORP{0bscur3d_t0uch_t4pj4ck3d}"
+    const val MEMORY = "EVILCORP{1mmut4bl3_str1ng_1n_h34p_dump}"
+    const val INTENTREDIRECT = "EVILCORP{1nt3nt_r3d1r3ct_p1v0t_4dm1n}"
+    const val PATHTRAVERSAL = "EVILCORP{z1p_sl1p_d0t_d0t_sl4sh}"
 }

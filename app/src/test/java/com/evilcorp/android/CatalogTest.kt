@@ -10,7 +10,8 @@ import org.junit.Test
 class CatalogTest {
     private val all = ChallengeCatalog.all
 
-    @Test fun idsAreUniqueAndStable() {
+    @Test fun hasThirtyChallengesWithUniqueStableIds() {
+        assertEquals(30, all.size)
         assertEquals(all.size, all.map { it.id }.toSet().size)
         all.forEach { assertTrue("bad id ${it.id}", it.id.matches(Regex("[a-z]+"))) }
     }

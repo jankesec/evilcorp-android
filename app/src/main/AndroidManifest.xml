@@ -39,6 +39,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Lab: intentredirect. Exported proxy that forwards to arbitrary internal components. -->
+        <activity
+            android:name=".labs.IntentRedirectActivity"
+            android:exported="true"
+            android:theme="@style/Theme.EvilCorp" />
+
+        <!-- Lab: intentredirect target. Non-exported internal admin console. -->
+        <activity
+            android:name=".labs.InternalAdminActivity"
+            android:exported="false"
+            android:theme="@style/Theme.EvilCorp" />
+
         <!-- Lab: provider. Exported with no permission. -->
         <provider
             android:name=".labs.NotesProvider"
@@ -51,6 +63,15 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="com.evilcorp.android.ACTION_PROMOTE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Lab: pendingintent. Exported receiver that intercepts/hijacks mutable PendingIntents. -->
+        <receiver
+            android:name=".labs.PendingIntentHijackReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.evilcorp.android.ACTION_DISPATCH_PI" />
             </intent-filter>
         </receiver>
     </application>
