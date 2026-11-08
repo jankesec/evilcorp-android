@@ -149,6 +149,17 @@ All network activity stays on the device loopback (`127.0.0.1:8080`, reachable v
 └── .github/workflows/ci.yml
 ```
 
+## Author
+
+```text
+Author          : Sevban Dönmez (@jankesec)
+Role            : Senior Cyber Security Consultant · Red Team & Offensive Security Researcher
+Research Portal : https://jankesec.com
+GitHub          : https://github.com/jankesec
+PGP Fingerprint : FF0A 7D83 6751 CCE3 F9CC F574 FCF8 39FB 7F00 4626
+GPG Key ID      : 5FDB257F4AAE8C3F
+```
+
 ## Responsible use
 
 Use EvilCorp only on systems you own or are explicitly authorized to test. Read
@@ -158,3 +169,9 @@ outside the intentionally vulnerable scope follow [SECURITY.md](SECURITY.md).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+<p align="center">
+  <a href="https://buymeacoffee.com/sevbandonmez">
+    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-sevbandonmez-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee">
+  </a>
+</p>
