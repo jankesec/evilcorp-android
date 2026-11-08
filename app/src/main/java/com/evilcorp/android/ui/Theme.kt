@@ -5,37 +5,35 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Exact design tokens from https://jankesec.com (:root CSS variables)
-val Bg = Color(0xFF040404)            // --bg: #040404
-val BgSoft = Color(0xFF080808)        // --bg-soft: #080808
-val Panel = Color(0xFF0B0B0B)         // --panel: #0b0b0b
-val Elevated = Color(0xFF111111)      // --panel-2: #111111
-val CodeBg = Color(0xFF070707)        // --code-bg: #070707
-val CardBorder = Color(0x1CFFFFFF)    // --glass-border: #ffffff1c
-val LineSubtle = Color(0x17FFFFFF)    // --line: #ffffff17
-val LineStrong = Color(0x2EFFFFFF)    // --line-strong: #ffffff2e
-val GlassHighlight = Color(0x0DFFFFFF)// --glass-highlight: #ffffff0d
+// Refined dark monochrome palette inspired by jankesec.com & native Android dark UI
+val Bg = Color(0xFF060709)
+val BgSoft = Color(0xFF0A0C10)
+val Panel = Color(0xFF101217)
+val Elevated = Color(0xFF171A21)
+val CodeBg = Color(0xFF090B0E)
+val CardBorder = Color(0xFF222630)
+val LineSubtle = Color(0xFF1A1D24)
+val LineStrong = Color(0xFF2C313D)
 
-// Typography & Monochrome scale
-val TextPrimary = Color(0xFFF2F2F2)   // --text: #f2f2f2
-val TextSoft = Color(0xFFD6D6D6)      // --text-soft: #d6d6d6
-val Muted = Color(0xFFA3A3A3)         // --muted: #a3a3a3
-val Mono100 = Color(0xFFF4F4F4)       // --mono-100 / --accent: #f4f4f4
-val Mono200 = Color(0xFFE2E2E2)       // --mono-200: #e2e2e2
-val Mono500 = Color(0xFF9A9A9A)       // --mono-500: #9a9a9a
+val TextPrimary = Color(0xFFF3F4F6)
+val TextSoft = Color(0xFFD1D5DB)
+val Muted = Color(0xFF8B92A5)
+val Mono100 = Color(0xFFF3F4F6)
+val Mono200 = Color(0xFFE5E7EB)
+val Mono500 = Color(0xFF9CA3AF)
 
-// Severity & semantic colors from jankesec.com
-val Red = Color(0xFFE8615C)           // --sev-critical: #e8615c
-val Accent = Color(0xFFE2854B)        // --sev-high: #e2854b
-val Amber = Color(0xFFE2854B)         // --sev-high: #e2854b
-val Yellow = Color(0xFFC9A9D4)        // --sev-medium: #c9a9d4
-val Cyan = Color(0xFF7FA8D4)          // --sev-low: #7fa8d4
-val Green = Color(0xFF8BD49C)         // clean muted terminal green for solved/success
-val SevMedium = Color(0xFFC9A9D4)     // --sev-medium: #c9a9d4
-val SevInfo = Color(0xFF8A8F99)       // --sev-info: #8a8f99
+// Semantic & Severity Accents
+val Green = Color(0xFF10B981)
+val Amber = Color(0xFFF59E0B)
+val Yellow = Color(0xFFF59E0B)
+val Red = Color(0xFFEF4444)
+val Accent = Color(0xFFF59E0B)
+val Cyan = Color(0xFF38BDF8)
+val SevMedium = Color(0xFFF59E0B)
+val SevInfo = Color(0xFF9CA3AF)
 
 private val Scheme = darkColorScheme(
-    primary = Mono100,
+    primary = TextPrimary,
     secondary = TextSoft,
     tertiary = Cyan,
     background = Bg,
