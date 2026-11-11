@@ -1,67 +1,52 @@
 /**
- * EvilCorp Android — Universal Frida Instrumentation & Bypass Suite
+ * EvilCorp Android — Frida instrumentation & bypass suite (instructor reference)
  * Author: Sevban Dönmez (@jankesec) — https://jankesec.com
  *
- * Usage:
+ * Neutralises the client-side checks of the Resilience/Auth labs in com.evilcorp.android only.
+ *
+ * Usage (Frida 17+; the frida CLI bundles the Java bridge):
  *   frida -U -f com.evilcorp.android -l frida/evilcorp_bypass_all.js
+ * When loading through frida-compile or the Python/Node API instead, add
+ *   import Java from "frida-java-bridge";
  */
 
 Java.perform(function () {
-    console.log("[+] EvilCorp Android Universal Frida Suite loaded");
+    console.log("[+] EvilCorp Android bypass suite loaded");
 
-    function hookMethod(className, methodName, callback) {
+    function hookAll(className, methodName, result) {
         try {
             var clazz = Java.use(className);
             clazz[methodName].overloads.forEach(function (overload) {
                 overload.implementation = function () {
-                    return callback.apply(this, arguments);
+                    var args = Array.prototype.slice.call(arguments).map(String).join(", ");
+                    console.log("[bypass] " + className.split(".").pop() + "." + methodName + "(" + args + ") -> " + result);
+                    return result;
                 };
             });
-            console.log("  [✓] Hooked " + className + "." + methodName);
+            console.log("  [ok] hooked " + className + "." + methodName);
         } catch (e) {
-            console.log("  [!] Skipped " + className + "." + methodName + ": " + e.message);
+            console.log("  [!] skipped " + className + "." + methodName + ": " + e.message);
         }
     }
 
-    // #10 Root Detection Bypass (MASWE-0097)
-    hookMethod("com.evilcorp.android.labs.RootChecker", "isRooted", function (_ctx) {
-        console.log("[Bypass] RootChecker.isRooted() -> false");
-        return false;
-    });
+    // #10 Root Detection Bypass (MASWE-0051)
+    hookAll("com.evilcorp.android.labs.RootChecker", "isRooted", false);
 
-    // #19 SSL Certificate Pinning Bypass (MASWE-0047)
-    hookMethod("com.evilcorp.android.labs.SslPinValidator", "verifyCertificatePin", function (pin) {
-        console.log("[Bypass] SslPinValidator.verifyCertificatePin('" + pin + "') -> true");
-        return true;
-    });
+    // #19 SSL Pinning Bypass (MASWE-0028)
+    hookAll("com.evilcorp.android.labs.SslPinValidator", "verifyCertificatePin", true);
 
-    // #21 Biometric Auth Bypass (MASWE-0033)
-    hookMethod("com.evilcorp.android.labs.BiometricGate", "isBiometricVerified", function () {
-        console.log("[Bypass] BiometricGate.isBiometricVerified() -> true");
-        return true;
-    });
+    // #21 Biometric Auth Bypass (MASWE-0020)
+    hookAll("com.evilcorp.android.labs.BiometricGate", "isBiometricVerified", true);
 
-    // #22 Debugger & Frida Detection Bypass (MASWE-0104)
-    hookMethod("com.evilcorp.android.labs.AntiDebugCheck", "isBeingDebugged", function (_ctx) {
-        console.log("[Bypass] AntiDebugCheck.isBeingDebugged() -> false");
-        return false;
-    });
+    // #22 Debugger Detection (MASWE-0064)
+    hookAll("com.evilcorp.android.labs.AntiDebugCheck", "isBeingDebugged", false);
 
-    // #24 Bytecode Tampering & Licensing Bypass (MASWE-0100)
-    hookMethod("com.evilcorp.android.labs.IntegrityGate", "verifyLicense", function (key) {
-        console.log("[Bypass] IntegrityGate.verifyLicense('" + key + "') -> true");
-        return true;
-    });
+    // #24 Bytecode Tampering & Licensing (MASWE-0058)
+    hookAll("com.evilcorp.android.labs.IntegrityGate", "verifyLicense", true);
 
-    // #38 Emulator Detection Bypass (MASWE-0099)
-    hookMethod("com.evilcorp.android.labs.EmulatorDetector", "isEmulator", function (hw) {
-        console.log("[Bypass] EmulatorDetector.isEmulator('" + hw + "') -> false");
-        return false;
-    });
+    // #38 Emulator Detection Bypass (MASWE-0053)
+    hookAll("com.evilcorp.android.labs.EmulatorDetector", "isEmulator", false);
 
-    // #39 APK Signature & Installer Verification Bypass (MASWE-0102)
-    hookMethod("com.evilcorp.android.labs.ApkSignatureVerifier", "isOfficialBuild", function (cert, pkg) {
-        console.log("[Bypass] ApkSignatureVerifier.isOfficialBuild('" + cert + "', '" + pkg + "') -> true");
-        return true;
-    });
+    // #39 APK Signature & Installer Check (MASWE-0056)
+    hookAll("com.evilcorp.android.labs.ApkSignatureVerifier", "isOfficialBuild", true);
 });

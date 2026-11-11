@@ -13,7 +13,6 @@ import com.evilcorp.android.data.LogStore
 import com.evilcorp.android.ui.Green
 import com.evilcorp.android.ui.Mono
 import com.evilcorp.android.ui.PrimaryButton
-import com.evilcorp.android.ui.Red
 import java.io.File
 
 /**
@@ -47,7 +46,7 @@ fun PrivacyTrackingLab() {
     LabFrame(
         scenario = "Even when the user declines analytics tracking, the embedded ad SDK harvests " +
             "Settings.Secure.ANDROID_ID and hardware attributes on startup and writes a correlation " +
-            "beacon to files/${TelemetryTracker.BEACON_FILE} (MASVS-PRIVACY-3).",
+            "beacon to files/${TelemetryTracker.BEACON_FILE} (MASVS-PRIVACY-2).",
         remediation = "Respect user consent before initializing analytics SDKs, never combine " +
             "non-resettable hardware identifiers (ANDROID_ID, IMEI, MAC, serial) for cross-app " +
             "tracking, and use user-resettable, app-scoped random UUIDs when needed.",
@@ -60,14 +59,19 @@ fun PrivacyTrackingLab() {
             val f = TelemetryTracker.writeFingerprintingBeacon(context.filesDir, androidId)
             LogStore.append("[PRIVACY] Covert fingerprint beacon written to ${f.name} (consent=false)")
             status = "User selected: OPT-OUT\n" +
-                "SDK still wrote persistent fingerprint beacon to:\n${f.absolutePath}\n" +
-                "Inspect via `adb shell run-as com.evilcorp.android cat files/${TelemetryTracker.BEACON_FILE}`"
+                "Analytics consent stored as: declined.\n" +
+                "(The SDK's own spool is not shown in the app UI.)"
         }
-        PrimaryButton("Inspect Local Telemetry Spool") {
+        PrimaryButton("Show consent receipt") {
+            // The app only shows what it *intends* to collect; the beacon on disk tells another story.
             val f = File(context.filesDir, TelemetryTracker.BEACON_FILE)
-            inspected = if (f.exists()) f.readText() else "No beacon file yet. Trigger SDK init first."
+            inspected = if (f.exists()) {
+                "Consent receipt\n  analytics: declined\n  identifiers collected: none (claimed)"
+            } else {
+                "No consent decision recorded yet."
+            }
         }
         if (status.isNotEmpty()) Mono(status)
-        if (inspected.isNotEmpty()) Mono(inspected, color = if (inspected.contains(Flags.TRACKING)) Green else Red)
+        if (inspected.isNotEmpty()) Mono(inspected, color = Green)
     }
 }

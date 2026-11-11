@@ -299,7 +299,7 @@ fun HomeScreen(
 
 /**
  * Clean .home-cve-row implementation from https://jankesec.com:
- * [01]  [CWE-89 · CODE-4 · MASWE-0079 (colored) / Full Title (wraps up to 2 lines)]  [CVSS circle]  [↗]
+ * [01]  [CWE-89 · CODE-4 · MASWE-0050 (colored) / Full Title (wraps up to 2 lines)]  [CVSS circle]  [↗]
  */
 @Composable
 fun JankesecLedgerRow(

@@ -22,6 +22,8 @@ import com.evilcorp.android.ui.Mono
 import com.evilcorp.android.ui.PrimaryButton
 import kotlinx.coroutines.delay
 
+private const val REVEAL_MS = 250L
+
 private tailrec fun Context.activity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.activity()
@@ -36,7 +38,8 @@ fun ScreenshotLab() {
 
     LaunchedEffect(revealed) {
         if (revealed) {
-            delay(3000)
+            // Far too short to read by eye, long enough for any screen capture without FLAG_SECURE.
+            delay(REVEAL_MS)
             revealed = false
         }
     }
@@ -47,15 +50,15 @@ fun ScreenshotLab() {
     }
 
     LabFrame(
-        scenario = "The card screen briefly reveals the full card secret. Without FLAG_SECURE, " +
-            "screenshots, screen recordings, casting and the Recents thumbnail all capture it. " +
-            "Capture the secret during its 3-second reveal, then turn on the fix and try again.",
+        scenario = "The card screen flashes the full card secret for a fraction of a second, too fast " +
+            "to read. Without FLAG_SECURE, screenshots, screen recordings, casting and the Recents " +
+            "thumbnail can all capture it. Capture the secret, then turn on the fix and try again.",
         remediation = "Set WindowManager.LayoutParams.FLAG_SECURE on windows that show sensitive data " +
             "(and on dialogs/bottom sheets, which have their own windows). On API 33+ also consider " +
             "setRecentsScreenshotEnabled(false).",
     ) {
         Mono(if (revealed) "Card secret: ${Flags.SCREENSHOT}" else "Card secret: ●●●● ●●●● ●●●● ●●●●")
-        PrimaryButton("Reveal for 3 seconds") { revealed = true }
+        PrimaryButton("Flash card secret (${REVEAL_MS} ms)") { revealed = true }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Switch(checked = secure, onCheckedChange = { secure = it })
             Text(if (secure) "Fix applied: FLAG_SECURE on" else "FLAG_SECURE off (vulnerable)")

@@ -5,8 +5,8 @@
  * Intentionally vulnerable C implementation for:
  *   - Lab #37: JNI Stack Buffer Overflow (CWE-120 · MASWE-0076 · MASTG-TEST-0042)
  *   - Static binary analysis (Ghidra / IDA Pro / Binary Ninja / strings / radare2)
- *   - Dynamic native hooking via Frida:
- *       Interceptor.attach(Module.findExportByName("libevilcorp_native.so", "evilcorp_verify_serial"), ...)
+ *   - Dynamic native hooking via Frida 17+:
+ *       Interceptor.attach(Process.getModuleByName("libevilcorp_native.so").getExportByName("evilcorp_verify_serial"), ...)
  */
 
 typedef struct {

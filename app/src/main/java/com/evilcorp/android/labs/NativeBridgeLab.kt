@@ -61,19 +61,17 @@ fun NativeBridgeLab() {
     var ok by remember { mutableStateOf(false) }
 
     LabFrame(
-        scenario = "The native JNI library (libevilcorp_jni.so) copies the badge name into a 16-byte " +
-            "stack buffer (char username[16]) right before uint8_t privileged = 0 using strcpy(). " +
-            "Overflow past 16 bytes to overwrite the adjacent privilege byte.",
+        scenario = "The badge parser copies the badge name into a fixed-size C stack buffer with no " +
+            "length check, right next to the frame's privilege flag. (This screen models the JNI " +
+            "frame in Kotlin; the C counterpart ships as libevilcorp_native.so for static analysis.) " +
+            "Get a privileged badge without knowing a privileged username.",
         remediation = "Use bounded functions (snprintf, strlcpy) in C/C++ JNI code, enable compiler " +
             "mitigations (-fstack-protector-strong, _FORTIFY_SOURCE=2, Scudo/MTE), and validate " +
             "input lengths before crossing the JNI boundary.",
     ) {
-        LabField(badgeInput, {
-            badgeInput = it
-            frameDump = NativeBridgeSim.jniParseBadge(it).hexDump()
-        }, "JNI badge string (char username[16])")
+        LabField(badgeInput, { badgeInput = it }, "Badge name")
         Mono(frameDump)
-        PrimaryButton("Invoke Java_com_evilcorp_NativeBridge_verifyBadge()") {
+        PrimaryButton("Verify badge") {
             val frame = NativeBridgeSim.jniParseBadge(badgeInput)
             frameDump = frame.hexDump()
             if (frame.corruptedPrivilege) {

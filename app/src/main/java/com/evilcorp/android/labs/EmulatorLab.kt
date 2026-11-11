@@ -13,8 +13,8 @@ import com.evilcorp.android.ui.PrimaryButton
 import com.evilcorp.android.ui.Red
 
 /**
- * INTENTIONALLY INSECURE: client-side emulator detection relying on `Build.*` constants and a
- * spoofable system property (`debug.evilcorp.real_device`).
+ * INTENTIONALLY INSECURE: client-side emulator detection that relies on spoofable `Build.*`
+ * constants, plus a QA override property that was never removed from the release.
  */
 object EmulatorDetector {
     const val BYPASS_PROP = "debug.evilcorp.real_device"
@@ -34,42 +34,39 @@ object EmulatorDetector {
         if (Build.MODEL.contains("sdk", ignoreCase = true) ||
             Build.PRODUCT.contains("sdk", ignoreCase = true)
         ) add("Build.MODEL=${Build.MODEL}")
+        // Synthetic probe so the lab behaves the same on emulators and physical test devices.
         add("ro.kernel.qemu=1 (synthetic lab probe)")
     }
 
     @JvmStatic
-    fun isEmulator(spoofedHardware: String = Build.HARDWARE): Boolean {
+    fun isEmulator(): Boolean {
         if (readProp(BYPASS_PROP) == "1") return false
-        if (spoofedHardware.trim().equals("qcom", ignoreCase = true)) return false
-        return true
+        return detectedIndicators().isNotEmpty()
     }
 }
 
 @Composable
 fun EmulatorLab() {
-    var hardwareOverride by remember { mutableStateOf(Build.HARDWARE) }
     var status by remember { mutableStateOf("") }
     var ok by remember { mutableStateOf(false) }
 
     LabFrame(
-        scenario = "The production key provisioning endpoint refuses to run in an Android Virtual " +
-            "Device because EmulatorDetector.isEmulator() inspects Build.HARDWARE, Build.FINGERPRINT, " +
-            "and system properties. Hook isEmulator() with Frida or spoof the hardware identifier.",
+        scenario = "The production key provisioning endpoint refuses to run on an Android Virtual Device. " +
+            "EmulatorDetector inspects Build.* values and system properties before releasing the key. " +
+            "Convince the app it is running on a physical device.",
         remediation = "Treat environment checks as defense-in-depth signals rather than sole access " +
-            "controls. Combine Play Integrity hardware-backed device attestation with server-side " +
-            "verification instead of trusting Build.* strings on the client.",
+            "controls. Combine Play Integrity device verdicts with server-side verification instead of " +
+            "trusting Build.* strings on the client, and strip QA overrides from release builds.",
     ) {
         Mono("Detected indicators:\n" + EmulatorDetector.detectedIndicators().joinToString("\n") { "· $it" })
-        LabField(hardwareOverride, { hardwareOverride = it }, "Reported Build.HARDWARE value")
         PrimaryButton("Request Production Provisioning Key") {
-            if (!EmulatorDetector.isEmulator(hardwareOverride)) {
+            if (!EmulatorDetector.isEmulator()) {
                 ok = true
-                LogStore.append("[RESILIENCE] Emulator check bypassed (hardware=$hardwareOverride)")
+                LogStore.append("[RESILIENCE] Emulator check bypassed")
                 status = "Physical device verified!\nProvisioning key: ${Flags.EMULATOR}"
             } else {
                 ok = false
-                status = "Blocked: Virtualized / emulator environment detected (hardware='$hardwareOverride').\n" +
-                    "Hook EmulatorDetector.isEmulator() or spoof hardware to 'qcom' / set ${EmulatorDetector.BYPASS_PROP}=1."
+                status = "Blocked: virtualized / emulator environment detected."
             }
         }
         if (status.isNotEmpty()) Mono(status, color = if (ok) Green else Red)

@@ -1,99 +1,182 @@
+# EvilCorp Android — Semgrep SAST benchmark rules
+# Run: semgrep --config rules/semgrep-evilcorp.yml --metrics=off app/src/main/
+# Every rule except unverified-dex-class-loader has at least one true positive in this codebase
+# (lab #35 simulates its loader, so that rule documents the real-world pattern only).
 rules:
   - id: evilcorp-android-raw-sql-injection
     languages: [kotlin]
     severity: ERROR
     message: >
-      Concatenated SQL query passed to rawQuery/execSQL allows SQLite injection (CWE-89, MASWE-0079).
-      Use parameterized queries with '?' placeholders.
-    pattern-either:
-      - pattern: $DB.rawQuery("..." + $INPUT + "...", ...)
-      - pattern: $DB.rawQuery("...${$INPUT}...", ...)
+      Dynamic SQL passed to rawQuery() without selectionArgs. If any part of the query comes from
+      user input this is SQL injection (CWE-89, MASWE-0050). Use '?' placeholders and selectionArgs.
+    patterns:
+      - pattern: $DB.rawQuery($QUERY, null)
+      - pattern-not: $DB.rawQuery("...", null)
     metadata:
       cwe: "CWE-89"
       masvs: "MASVS-CODE-4"
-      maswe: "MASWE-0079"
+      maswe: "MASWE-0050"
 
-  - id: evilcorp-android-broken-crypto-ecb-or-md5
+  - id: evilcorp-android-broken-cipher-mode
     languages: [kotlin]
     severity: ERROR
     message: >
-      Use of broken or unauthenticated cryptographic primitive (AES/ECB or MD5) detected (CWE-327, MASWE-0020).
-      Prefer AES/GCM/NoPadding with AndroidKeyStore-backed keys or Argon2id/PBKDF2 for passwords.
-    pattern-either:
-      - pattern: Cipher.getInstance("AES/ECB/...")
-      - pattern: MessageDigest.getInstance("MD5")
+      ECB mode (explicit, or implied by a bare "AES"/"DES" transformation) leaks plaintext patterns
+      (CWE-327, MASWE-0007). Use AES/GCM/NoPadding with a unique IV and an AndroidKeyStore key.
+    patterns:
+      - pattern: Cipher.getInstance("$ALG")
+      - metavariable-regex:
+          metavariable: $ALG
+          regex: (?i)^(AES|DES|DESede|AES/ECB/.*|DES/.*)$
     metadata:
       cwe: "CWE-327"
       masvs: "MASVS-CRYPTO-1"
-      maswe: "MASWE-0020"
+      maswe: "MASWE-0007"
+
+  - id: evilcorp-android-weak-hash
+    languages: [kotlin]
+    severity: WARNING
+    message: >
+      MD5/SHA-1 are broken for security purposes, and a fast unsalted hash of a PIN or password is
+      trivially brute-forced (CWE-328, MASWE-0008). Use a slow, salted KDF such as Argon2id or PBKDF2.
+    patterns:
+      - pattern: MessageDigest.getInstance("$ALG")
+      - metavariable-regex:
+          metavariable: $ALG
+          regex: (?i)^(MD5|MD4|MD2|SHA-?1)$
+    metadata:
+      cwe: "CWE-328"
+      masvs: "MASVS-CRYPTO-1"
+      maswe: "MASWE-0008"
 
   - id: evilcorp-android-insecure-random
     languages: [kotlin]
     severity: WARNING
     message: >
-      java.util.Random is predictable when seeded or observed (CWE-338, MASWE-0027).
+      java.util.Random is predictable when seeded or observed (CWE-338, MASWE-0012).
       Use java.security.SecureRandom for security-sensitive tokens and nonces.
     pattern: java.util.Random(...)
     metadata:
       cwe: "CWE-338"
       masvs: "MASVS-CRYPTO-1"
-      maswe: "MASWE-0027"
+      maswe: "MASWE-0012"
 
   - id: evilcorp-android-webview-javascript-interface
     languages: [kotlin]
     severity: ERROR
     message: >
-      WebView exposes a @JavascriptInterface bridge (CWE-79, MASWE-0068). Ensure only trusted
-      origins are loaded and validate all bridge inputs.
-    pattern: $WV.addJavascriptInterface(...)
+      WebView exposes a @JavascriptInterface bridge to page script (CWE-749, MASWE-0033). Only load
+      trusted origins and validate every bridge input.
+    pattern-either:
+      - pattern: $WV.addJavascriptInterface(...)
+      - pattern: addJavascriptInterface(...)
     metadata:
-      cwe: "CWE-79"
+      cwe: "CWE-749"
       masvs: "MASVS-PLATFORM-2"
-      maswe: "MASWE-0068"
+      maswe: "MASWE-0033"
 
   - id: evilcorp-android-webview-universal-file-access
     languages: [kotlin]
     severity: ERROR
     message: >
-      WebView enables allowUniversalAccessFromFileURLs or allowFileAccessFromFileURLs (CWE-200, MASWE-0070).
+      WebView enables allowUniversalAccessFromFileURLs or allowFileAccessFromFileURLs (CWE-200, MASWE-0034).
     pattern-either:
       - pattern: $SETTINGS.allowUniversalAccessFromFileURLs = true
       - pattern: $SETTINGS.allowFileAccessFromFileURLs = true
     metadata:
       cwe: "CWE-200"
       masvs: "MASVS-PLATFORM-2"
-      maswe: "MASWE-0070"
+      maswe: "MASWE-0034"
+
+  - id: evilcorp-android-webview-debugging-enabled
+    languages: [kotlin]
+    severity: WARNING
+    message: >
+      WebView remote debugging is enabled unconditionally (CWE-489, MASWE-0063). Gate it on a
+      debug build flag so release builds cannot be inspected through chrome://inspect.
+    pattern: WebView.setWebContentsDebuggingEnabled(true)
+    metadata:
+      cwe: "CWE-489"
+      masvs: "MASVS-RESILIENCE-4"
+      maswe: "MASWE-0063"
 
   - id: evilcorp-android-mutable-pending-intent
     languages: [kotlin]
-    severity: ERROR
+    severity: WARNING
     message: >
-      PendingIntent created with FLAG_MUTABLE and an implicit Intent allows third-party apps
-      to hijack the target action or extras (CWE-927, MASWE-0065).
-    pattern: PendingIntent.getBroadcast($CTX, $CODE, $INTENT, ... or PendingIntent.FLAG_MUTABLE)
+      Mutable PendingIntent: the recipient can fill in unset fields of the wrapped Intent and send it
+      with this app's identity (CWE-927, MASWE-0032). Prefer FLAG_IMMUTABLE and an explicit Intent.
+    pattern: PendingIntent.FLAG_MUTABLE
     metadata:
       cwe: "CWE-927"
       masvs: "MASVS-PLATFORM-1"
-      maswe: "MASWE-0065"
+      maswe: "MASWE-0032"
+
+  - id: evilcorp-android-unsafe-implicit-pending-intent
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT disables Android 14's block on mutable PendingIntents that wrap
+      implicit Intents (CWE-927, MASWE-0032). Make the base Intent explicit instead.
+    pattern: PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT
+    metadata:
+      cwe: "CWE-927"
+      masvs: "MASVS-PLATFORM-1"
+      maswe: "MASWE-0032"
 
   - id: evilcorp-android-unsafe-object-input-stream
     languages: [kotlin]
     severity: ERROR
     message: >
-      ObjectInputStream.readObject() on untrusted bytes permits arbitrary class instantiation (CWE-502, MASWE-0080).
-    pattern: ObjectInputStream($STREAM).readObject()
+      ObjectInputStream on untrusted bytes permits arbitrary object graphs and type confusion
+      (CWE-502, MASWE-0050). Use a schema-validated format or an ObjectInputFilter allow-list.
+    pattern-either:
+      - pattern: ObjectInputStream(...)
+      - pattern: java.io.ObjectInputStream(...)
     metadata:
       cwe: "CWE-502"
       masvs: "MASVS-CODE-4"
-      maswe: "MASWE-0080"
+      maswe: "MASWE-0050"
 
   - id: evilcorp-android-unverified-dex-class-loader
     languages: [kotlin]
     severity: ERROR
     message: >
-      Dynamic code loading via DexClassLoader without cryptographic signature verification (CWE-494, MASWE-0084).
-    pattern: DexClassLoader(...)
+      Dynamic code loading without verifying the code's integrity and origin (CWE-494, MASWE-0049).
+    pattern-either:
+      - pattern: DexClassLoader(...)
+      - pattern: dalvik.system.DexClassLoader(...)
     metadata:
       cwe: "CWE-494"
-      masvs: "MASVS-CODE-2"
-      maswe: "MASWE-0084"
+      masvs: "MASVS-CODE-4"
+      maswe: "MASWE-0049"
+
+  - id: evilcorp-android-sensitive-data-in-log
+    languages: [kotlin]
+    severity: ERROR
+    message: >
+      A log statement includes what looks like a credential or token (CWE-532, MASWE-0005). Logcat is
+      readable over adb and by privileged apps; never log secrets.
+    patterns:
+      - pattern: Log.$LEVEL($TAG, $MSG)
+      - metavariable-regex:
+          metavariable: $MSG
+          regex: (?i).*(pass|token|secret|otp|session).*
+    metadata:
+      cwe: "CWE-532"
+      masvs: "MASVS-STORAGE-2"
+      maswe: "MASWE-0005"
+
+  - id: evilcorp-android-external-storage-write
+    languages: [kotlin]
+    severity: WARNING
+    message: >
+      Data written under external storage leaves the app sandbox and is readable over adb/MTP
+      (CWE-922, MASWE-0002). Keep sensitive files in internal storage.
+    pattern-either:
+      - pattern: $CTX.getExternalFilesDir(...)
+      - pattern: $CTX.externalCacheDir
+    metadata:
+      cwe: "CWE-922"
+      masvs: "MASVS-STORAGE-2"
+      maswe: "MASWE-0002"

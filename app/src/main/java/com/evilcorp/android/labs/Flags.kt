@@ -1,50 +1,53 @@
 package com.evilcorp.android.labs
 
 /**
- * Synthetic CTF flags for all 42 labs. These are training values, not real secrets.
- * A flag is only meant to be obtained by exploiting the matching lab.
+ * Synthetic CTF flags for all 42 labs, decoded at runtime from [FlagVault].
+ *
+ * These are getters, not `const val`s, on purpose: a constant would be inlined into the DEX as a
+ * greppable string. The plaintext values live in `app/flags.properties` (maintainers only).
+ * Only read a flag on the exploitation path of the lab it belongs to.
  */
 object Flags {
-    const val PREFS = "EVILCORP{pl41n_pr3fs_4r3_n0t_s3cr3t5}"
-    const val SQLI = "EVILCORP{un10n_s3l3ct_st1ll_w0rks}"
-    const val SECRETS = "EVILCORP{h4rdc0d3d_k3ys_l34k_1n_4pks}"
-    const val LOGGING = "EVILCORP{l0gcat_s33s_3v3ryth1ng}"
-    const val CRYPTO = "EVILCORP{ecb_m0d3_l34ks_p4tt3rns}"
-    const val RANDOM = "EVILCORP{s33d3d_r4nd0m_1s_pr3d1ct4bl3}"
-    const val WEBVIEW = "EVILCORP{j4v4scr1pt_br1dg3_pwn3d}"
-    const val PROVIDER = "EVILCORP{3xp0rt3d_pr0v1d3r_d4t4_l34k}"
-    const val DEEPLINK = "EVILCORP{d33pl1nk_n0_v4l1d4t10n}"
-    const val ROOT = "EVILCORP{cl13nt_s1d3_r00t_ch3ck_byp4ss3d}"
-    const val CLEARTEXT = "EVILCORP{cl3art3xt_http_s3ss10n_t0k3n}"
-    const val EXTERNAL = "EVILCORP{3xt3rn4l_st0r4g3_w0rld_r34d4bl3}"
-    const val BROADCAST = "EVILCORP{unpr0t3ct3d_br04dc4st_pr0m0t3}"
-    const val CLIPBOARD = "EVILCORP{cl1pb04rd_1s_sh4r3d_st4t3}"
-    const val PIN = "EVILCORP{4_d1g1t_p1n_n0_l0ck0ut}"
-    const val SCREENSHOT = "EVILCORP{n0_FLAG_S3CUR3_s0_sn4p}"
-    const val KEYSTORE = "EVILCORP{pkcs12_d3f4ult_p4ss_ch4ng31t}"
-    const val BACKUP = "EVILCORP{4ll0w_b4ckup_3xp0s3s_f1l3s}"
-    const val SSLPINNING = "EVILCORP{ssl_p1nn1ng_h00k_byp4ss3d}"
-    const val WEBVIEWFILE = "EVILCORP{w3bv13w_f1l3_sch3m3_l34k}"
-    const val BIOMETRIC = "EVILCORP{3v3nt_b0und_b10m3tr1c_byp4ss}"
-    const val ANTIDEBUG = "EVILCORP{d3bugg3r_ch3ck_n3utr4l1z3d}"
-    const val KEYBOARD = "EVILCORP{1m3_d1ct10n4ry_c4ch3d_s3cr3t}"
-    const val TAMPERING = "EVILCORP{sm4l1_p4tch_0r_k3yg3n_w1ns}"
-    const val HTTPCACHE = "EVILCORP{http_d1sk_c4ch3_n0_st0r3}"
-    const val PENDINGINTENT = "EVILCORP{mut4bl3_p3nd1ng_1nt3nt_h1j4ck}"
-    const val TAPJACKING = "EVILCORP{0bscur3d_t0uch_t4pj4ck3d}"
-    const val MEMORY = "EVILCORP{1mmut4bl3_str1ng_1n_h34p_dump}"
-    const val INTENTREDIRECT = "EVILCORP{1nt3nt_r3d1r3ct_p1v0t_4dm1n}"
-    const val PATHTRAVERSAL = "EVILCORP{z1p_sl1p_d0t_d0t_sl4sh}"
-    const val JWT = "EVILCORP{jwt_4lg_n0n3_cl41m_f0rg3d}"
-    const val STEPUP = "EVILCORP{st3p_up_4uth_sk1pp3d_w1r3}"
-    const val TRUSTMANAGER = "EVILCORP{trus7_4ll_c3rts_m1tm_pwn}"
-    const val IVREUSE = "EVILCORP{st4t1c_n0nc3_x0r_k3ystr34m}"
-    const val DEXLOAD = "EVILCORP{uns1gn3d_d3x_plug1n_l04d3d}"
-    const val SERIALIZATION = "EVILCORP{j4v4_0bj3ct_d3s3r14l1z3_4dm1n}"
-    const val NATIVEBRIDGE = "EVILCORP{jn1_st4ck_buff3r_0v3rfl0w}"
-    const val EMULATOR = "EVILCORP{3mul4t0r_pr0p_ch3ck_sp00f3d}"
-    const val REPACKAGING = "EVILCORP{s1gn4tur3_v3r1f13r_h00k3d}"
-    const val TRACKING = "EVILCORP{h4rdw4r3_1d_f1ng3rpr1nt_l34k}"
-    const val NOTIFICATIONS = "EVILCORP{pu8l1c_l0ckscr33n_2f4_l34k}"
-    const val STRANDHOGG = "EVILCORP{t4sk_4ff1n1ty_r3p4r3nt_h1j4ck}"
+    val PREFS: String get() = FlagVault.reveal("prefs")
+    val SQLI: String get() = FlagVault.reveal("sqli")
+    val SECRETS: String get() = FlagVault.reveal("secrets")
+    val LOGGING: String get() = FlagVault.reveal("logging")
+    val CRYPTO: String get() = FlagVault.reveal("crypto")
+    val RANDOM: String get() = FlagVault.reveal("random")
+    val WEBVIEW: String get() = FlagVault.reveal("webview")
+    val PROVIDER: String get() = FlagVault.reveal("provider")
+    val DEEPLINK: String get() = FlagVault.reveal("deeplink")
+    val ROOT: String get() = FlagVault.reveal("root")
+    val CLEARTEXT: String get() = FlagVault.reveal("cleartext")
+    val EXTERNAL: String get() = FlagVault.reveal("external")
+    val BROADCAST: String get() = FlagVault.reveal("broadcast")
+    val CLIPBOARD: String get() = FlagVault.reveal("clipboard")
+    val PIN: String get() = FlagVault.reveal("pin")
+    val SCREENSHOT: String get() = FlagVault.reveal("screenshot")
+    val KEYSTORE: String get() = FlagVault.reveal("keystore")
+    val BACKUP: String get() = FlagVault.reveal("backup")
+    val SSLPINNING: String get() = FlagVault.reveal("sslpinning")
+    val WEBVIEWFILE: String get() = FlagVault.reveal("webviewfile")
+    val BIOMETRIC: String get() = FlagVault.reveal("biometric")
+    val ANTIDEBUG: String get() = FlagVault.reveal("antidebug")
+    val KEYBOARD: String get() = FlagVault.reveal("keyboard")
+    val TAMPERING: String get() = FlagVault.reveal("tampering")
+    val HTTPCACHE: String get() = FlagVault.reveal("httpcache")
+    val PENDINGINTENT: String get() = FlagVault.reveal("pendingintent")
+    val TAPJACKING: String get() = FlagVault.reveal("tapjacking")
+    val MEMORY: String get() = FlagVault.reveal("memory")
+    val INTENTREDIRECT: String get() = FlagVault.reveal("intentredirect")
+    val PATHTRAVERSAL: String get() = FlagVault.reveal("pathtraversal")
+    val JWT: String get() = FlagVault.reveal("jwt")
+    val STEPUP: String get() = FlagVault.reveal("stepup")
+    val TRUSTMANAGER: String get() = FlagVault.reveal("trustmanager")
+    val IVREUSE: String get() = FlagVault.reveal("ivreuse")
+    val DEXLOAD: String get() = FlagVault.reveal("dexload")
+    val SERIALIZATION: String get() = FlagVault.reveal("serialization")
+    val NATIVEBRIDGE: String get() = FlagVault.reveal("nativebridge")
+    val EMULATOR: String get() = FlagVault.reveal("emulator")
+    val REPACKAGING: String get() = FlagVault.reveal("repackaging")
+    val TRACKING: String get() = FlagVault.reveal("tracking")
+    val NOTIFICATIONS: String get() = FlagVault.reveal("notifications")
+    val STRANDHOGG: String get() = FlagVault.reveal("strandhogg")
 }

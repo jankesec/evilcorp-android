@@ -11,38 +11,61 @@ import com.evilcorp.android.ui.Green
 import com.evilcorp.android.ui.Mono
 import com.evilcorp.android.ui.PrimaryButton
 import com.evilcorp.android.ui.Red
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Base64
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 /**
- * INTENTIONALLY INSECURE: trusts JWT claims client-side and accepts unsigned `alg:none` tokens
- * without verifying an HMAC/RSA signature on a backend server.
+ * INTENTIONALLY INSECURE: verifies HS256 signatures correctly, but also accepts tokens whose header
+ * says `"alg": "none"` and treats them as trusted. The HMAC key is random per process and never
+ * leaves memory, so editing the claims of a signed token fails: only the alg:none downgrade works.
  */
 object JwtSessionVerifier {
     private val encoder = Base64.getUrlEncoder().withoutPadding()
     private val decoder = Base64.getUrlDecoder()
+    private val hmacKey: ByteArray by lazy { ByteArray(32).also { SecureRandom().nextBytes(it) } }
 
-    val DEFAULT_GUEST_TOKEN: String = run {
-        val header = encoder.encodeToString("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
-        val payload = encoder.encodeToString("""{"sub":"j.doe","role":"employee","dept":"retail"}""".toByteArray())
-        "$header.$payload.c2lnbmF0dXJlX25vdF9jaGVja2Vk"
+    private fun b64(json: String): String = encoder.encodeToString(json.toByteArray(Charsets.UTF_8))
+
+    private fun hs256(signingInput: String): String =
+        encoder.encodeToString(
+            Mac.getInstance("HmacSHA256").run {
+                init(SecretKeySpec(hmacKey, "HmacSHA256"))
+                doFinal(signingInput.toByteArray(Charsets.UTF_8))
+            }
+        )
+
+    /** The legitimate session token issued to the employee j.doe (properly signed). */
+    val DEFAULT_GUEST_TOKEN: String by lazy {
+        val signingInput = b64("""{"alg":"HS256","typ":"JWT"}""") + "." +
+            b64("""{"sub":"j.doe","role":"employee","dept":"retail"}""")
+        "$signingInput.${hs256(signingInput)}"
     }
 
-    fun forgeAlgNoneAdminToken(): String {
-        val header = encoder.encodeToString("""{"alg":"none","typ":"JWT"}""".toByteArray())
-        val payload = encoder.encodeToString("""{"sub":"j.doe","role":"admin","dept":"executive"}""".toByteArray())
-        return "$header.$payload."
-    }
+    /** Reference exploit used by the unit tests. */
+    fun forgeAlgNoneAdminToken(): String =
+        b64("""{"alg":"none","typ":"JWT"}""") + "." + b64("""{"sub":"j.doe","role":"admin","dept":"executive"}""") + "."
 
     @JvmStatic
     fun isAdminToken(jwt: String): Boolean {
         val parts = jwt.trim().split(".")
-        if (parts.size < 2) return false
+        if (parts.size != 3) return false
         return runCatching {
-            val headerJson = String(decoder.decode(parts[0]), Charsets.UTF_8)
-            val payloadJson = String(decoder.decode(parts[1]), Charsets.UTF_8)
-            val algNoneOrUnchecked = headerJson.contains("\"alg\"")
-            val isAdmin = Regex(""""role"\s*:\s*"admin"""").containsMatchIn(payloadJson)
-            algNoneOrUnchecked && isAdmin
+            val header = String(decoder.decode(parts[0]), Charsets.UTF_8)
+            val payload = String(decoder.decode(parts[1]), Charsets.UTF_8)
+            val alg = Regex(""""alg"\s*:\s*"([^"]*)"""").find(header)?.groupValues?.get(1) ?: return false
+            val trusted = when (alg.lowercase()) {
+                "hs256" -> MessageDigest.isEqual(
+                    hs256("${parts[0]}.${parts[1]}").toByteArray(Charsets.UTF_8),
+                    parts[2].toByteArray(Charsets.UTF_8),
+                )
+                // INTENTIONALLY INSECURE: an unsigned token is trusted as if it had been verified
+                "none" -> true
+                else -> false
+            }
+            trusted && Regex(""""role"\s*:\s*"admin"""").containsMatchIn(payload)
         }.getOrDefault(false)
     }
 
@@ -64,9 +87,9 @@ fun JwtAuthLab() {
     var ok by remember { mutableStateOf(false) }
 
     LabFrame(
-        scenario = "The Executive Treasury view parses the session Bearer JWT directly on the client " +
-            "using JwtSessionVerifier.isAdminToken() without verifying the cryptographic signature or " +
-            "rejecting 'alg':'none'. Forge an unsigned admin JWT or hook the verifier.",
+        scenario = "The Executive Treasury view authorizes requests from the role claim of your session " +
+            "JWT. The verifier checks HS256 signatures, so simply editing the claims of your token gets " +
+            "rejected. Find another way to make it accept an admin token.",
         remediation = "Never rely on client-side JWT claim inspection for authorization. Validate " +
             "signatures on the backend against a strict algorithm allow-list (reject 'none'), " +
             "and enforce short token lifetimes with server-side RBAC checks.",
@@ -80,8 +103,8 @@ fun JwtAuthLab() {
                 output = "200 OK · Role=admin verified (signature check skipped)!\nFlag: ${Flags.JWT}"
             } else {
                 ok = false
-                LogStore.append("[AUTH] Denied JWT (role != admin)")
-                output = "403 Forbidden: JWT claim 'role' is not 'admin'."
+                LogStore.append("[AUTH] Denied JWT (signature or role check failed)")
+                output = "403 Forbidden: token rejected (invalid signature or role is not 'admin')."
             }
         }
         GhostButton("Reset to employee token") {

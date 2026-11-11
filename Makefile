@@ -8,7 +8,7 @@ ifeq ($(origin JAVA_HOME), undefined)
   endif
 endif
 
-.PHONY: build test check install run uninstall clean release
+.PHONY: build test flags check sast verify-labs install run uninstall clean release
 
 build:      ## Assemble the debug APK
 	$(GRADLE) assembleDebug
@@ -16,7 +16,16 @@ build:      ## Assemble the debug APK
 test:       ## Run JVM unit tests (catalog, scoring, flag invariants)
 	$(GRADLE) testDebugUnitTest
 
-check: build test  ## Everything CI runs
+flags:      ## Fail if any CTF flag is stored as plaintext in the debug APK
+	$(GRADLE) verifyNoPlaintextFlags
+
+check: build test flags  ## Everything CI runs
+
+sast:       ## Run the Semgrep benchmark rules (no metrics sent)
+	semgrep --config rules/semgrep-evilcorp.yml --metrics=off app/src/main/
+
+verify-labs:  ## Check every adb-solvable lab on the connected emulator
+	./scripts/adb_exploits.sh
 
 install: build  ## Install on the connected emulator/device
 	adb install -r $(APK)
