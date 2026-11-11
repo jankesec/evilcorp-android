@@ -37,8 +37,9 @@ Integrity and correctness release. Flag strings are unchanged, so existing progr
 
 ### Tooling and docs
 - `scripts/adb_exploits.sh` rewritten. 5 of its 7 steps targeted names that do not exist in the app
-  (prefs file, provider authority, deep-link host, system properties, intent extra). It now checks
-  14 labs and reports PASS / TODO / FAIL, with `--reset` to clear the properties it sets.
+  (prefs file, provider authority, deep-link host, system properties, intent extra). It now covers
+  15 labs in 13 checks (#21, #22 and #38 share one check that only sets their QA properties) and
+  reports PASS / TODO / FAIL, with `--reset` to clear the properties it sets.
 - Semgrep rules fixed: 5 of 8 matched nothing in the codebase. 5 rules were added; 12 of 13 now
   have true positives.
 - Frida suite and native snippets updated for Frida 17 (`Module.findExportByName` was removed).
