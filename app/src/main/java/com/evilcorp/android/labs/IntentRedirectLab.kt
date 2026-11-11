@@ -84,8 +84,8 @@ class InternalAdminActivity : ComponentActivity() {
 fun IntentRedirectLab() {
     LabFrame(
         scenario = "InternalAdminActivity has android:exported=\"false\", so external callers cannot " +
-            "launch it directly. However, IntentRedirectActivity is exported and blindly calls " +
-            "startActivity() on whatever component name is passed in the 'target_class' string extra.",
+            "launch it directly. IntentRedirectActivity, however, is exported and forwards callers to " +
+            "internal screens on request. Reach the admin console from outside the app.",
         remediation = "Never forward untrusted nested Intents or arbitrary class names from exported " +
             "components. Validate the target against a strict allow-list of public destinations and " +
             "verify that resolved components have exported=true.",

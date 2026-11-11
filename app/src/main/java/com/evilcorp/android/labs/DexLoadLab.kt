@@ -37,7 +37,7 @@ object PluginLoader {
             "DexClassLoader loaded unsigned '$EXPLOIT_ENTRY' from writable path!\n" +
                 "Executed DumpVaultPlugin.onLoad() -> ${Flags.DEXLOAD}"
         } else {
-            "Loaded benign plugin:\n$content\n(Hint: set entry_class to $EXPLOIT_ENTRY)"
+            "Loaded benign plugin:\n$content"
         }
     }
 }
@@ -50,9 +50,10 @@ fun DexLoadLab() {
     var ok by remember { mutableStateOf(false) }
 
     LabFrame(
-        scenario = "The plugin engine dynamically loads code via DexClassLoader from a writable " +
-            "staging directory without verifying the APK/DEX signature. Replace the plugin entry " +
-            "class with '${PluginLoader.EXPLOIT_ENTRY}' and execute the loader.",
+        scenario = "The plugin engine stages a plugin descriptor in a shared cache directory and loads " +
+            "whatever entry class it names, without verifying a signature. A forgotten internal " +
+            "'vault dump' plugin is still referenced by the engine. Find its entry class and make the " +
+            "loader execute it.",
         remediation = "Avoid loading executable DEX/JAR/SO code from writable or external storage. " +
             "If dynamic modules are required, use Play Feature Delivery, verify cryptographic " +
             "signatures before loading, and mark DEX files read-only (File.setReadOnly()).",

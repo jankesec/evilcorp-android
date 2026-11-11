@@ -1,6 +1,7 @@
 package com.evilcorp.android
 
 import com.evilcorp.android.labs.ApkSignatureVerifier
+import com.evilcorp.android.labs.FlagVault
 import com.evilcorp.android.labs.Flags
 import com.evilcorp.android.labs.IntegrityGate
 import com.evilcorp.android.labs.JwtSessionVerifier
@@ -28,17 +29,25 @@ class LabRegistryTest {
         assertEquals(ChallengeCatalog.all.map { it.id }.toSet(), LabRegistry.entries.keys)
     }
 
-    @Test fun flagsAreUniqueAndWellFormed() {
-        val flags = LabRegistry.entries.values.map { it.flag }
+    @Test fun flagVaultCoversEveryLabWithUniqueWellFormedFlags() {
+        assertEquals(LabRegistry.entries.keys, FlagVault.ids.toSet())
+        val flags = FlagVault.ids.map(FlagVault::reveal)
         assertEquals(42, flags.toSet().size)
         flags.forEach { assertTrue(it, it.matches(Regex("EVILCORP\\{[A-Za-z0-9_]+}"))) }
     }
 
-    @Test fun flagCheckIsExact() {
-        val f = LabRegistry.entries.getValue("sqli").flag
+    @Test fun flagCheckIsExactAndDigestBased() {
+        val f = FlagVault.reveal("sqli")
         assertTrue(LabRegistry.isCorrect("sqli", "  $f "))
         assertFalse(LabRegistry.isCorrect("sqli", f.lowercase()))
+        assertFalse(LabRegistry.isCorrect("sqli", f.dropLast(1)))
         assertFalse(LabRegistry.isCorrect("prefs", f))
+        assertFalse(LabRegistry.isCorrect("unknown", f))
+    }
+
+    @Test fun flagGettersDecodeFromTheVault() {
+        assertEquals(FlagVault.reveal("keystore"), Flags.KEYSTORE)
+        assertTrue(FlagVault.matches("keystore", Flags.KEYSTORE))
     }
 
     @Test fun pinLabIsSolvableByBruteForce() {
@@ -77,18 +86,31 @@ class LabRegistryTest {
         assertTrue(JwtSessionVerifier.isAdminToken(JwtSessionVerifier.forgeAlgNoneAdminToken()))
     }
 
+    @Test fun jwtClaimTamperingWithoutAlgNoneIsRejected() {
+        val (header, _, signature) = JwtSessionVerifier.DEFAULT_GUEST_TOKEN.split(".")
+        val adminClaims = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("""{"sub":"j.doe","role":"admin","dept":"retail"}""".toByteArray())
+        assertFalse(JwtSessionVerifier.isAdminToken("$header.$adminClaims.$signature"))
+        assertFalse(JwtSessionVerifier.isAdminToken("$header.$adminClaims."))
+    }
+
     @Test fun stepUpSkippedForInternalBatchChannel() {
         assertFalse(StepUpAuthController.isStepUpSatisfied(250_000, "mobile_app", ""))
         assertTrue(StepUpAuthController.isStepUpSatisfied(250_000, StepUpAuthController.TRUSTED_BATCH_CHANNEL, ""))
     }
 
     @Test fun staticIvTwoTimePadRecoversSecretFlag() {
-        val recovered = NonceReuseCrypto.recoverViaTwoTimePad(
-            NonceReuseCrypto.CIPHERTEXT_1_HEX,
-            NonceReuseCrypto.KNOWN_PLAINTEXT,
-            NonceReuseCrypto.CIPHERTEXT_2_HEX,
-        )
-        assertEquals(Flags.IVREUSE, recovered)
+        // The known plaintext must cover the whole flag, otherwise the lab is unsolvable.
+        assertTrue(NonceReuseCrypto.KNOWN_PLAINTEXT.length >= Flags.IVREUSE.length)
+        val (c1, c2) = NonceReuseCrypto.interceptedPackets()
+        assertEquals(Flags.IVREUSE, NonceReuseCrypto.recoverViaTwoTimePad(c1, NonceReuseCrypto.KNOWN_PLAINTEXT, c2))
+    }
+
+    @Test fun ivReuseKeyIsNotRecoverableFromTheApk() {
+        // Two independent keys give different ciphertexts: nothing about the key is hardcoded.
+        val a = NonceReuseCrypto.encrypt(NonceReuseCrypto.newKey(), NonceReuseCrypto.KNOWN_PLAINTEXT)
+        val b = NonceReuseCrypto.encrypt(NonceReuseCrypto.newKey(), NonceReuseCrypto.KNOWN_PLAINTEXT)
+        assertFalse(a.contentEquals(b))
     }
 
     @Test fun unsafeDeserializationRestoresSuperAdminFlag() {

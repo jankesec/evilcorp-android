@@ -62,20 +62,24 @@ fun PendingIntentLab() {
             val baseIntent = Intent("com.evilcorp.android.INTERNAL_CALLBACK").apply {
                 putExtra("delegated_flag", Flags.PENDINGINTENT)
             }
-            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
+            var flags = PendingIntent.FLAG_UPDATE_CURRENT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) flags = flags or PendingIntent.FLAG_MUTABLE
+            // Android 14+ throws for mutable + implicit unless the app explicitly opts out of the
+            // safety check, which is exactly what this insecure code does.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                flags = flags or PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT
             }
-            // INTENTIONALLY INSECURE: implicit base Intent + FLAG_MUTABLE
-            val pi = PendingIntent.getBroadcast(context, 1001, baseIntent, flags)
-            context.sendBroadcast(
-                Intent("com.evilcorp.android.ACTION_DISPATCH_PI").apply {
-                    putExtra("callback_pi", pi)
-                }
-            )
-            status = "Dispatched mutable PendingIntent (action=ACTION_DISPATCH_PI).\n" +
-                "Trigger hijack receiver via adb and refresh."
+            status = runCatching {
+                // INTENTIONALLY INSECURE: implicit base Intent + FLAG_MUTABLE
+                val pi = PendingIntent.getBroadcast(context, 1001, baseIntent, flags)
+                context.sendBroadcast(
+                    Intent("com.evilcorp.android.ACTION_DISPATCH_PI").apply {
+                        putExtra("callback_pi", pi)
+                    }
+                )
+                "Dispatched mutable PendingIntent (action=ACTION_DISPATCH_PI).\n" +
+                    "Trigger hijack receiver via adb and refresh."
+            }.getOrElse { "Platform refused to create the PendingIntent: ${it.message}" }
         }
         PrimaryButton("Refresh capture log") {
             status = prefs.getString("captured", "No hijack recorded yet.") ?: ""

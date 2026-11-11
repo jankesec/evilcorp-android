@@ -64,9 +64,6 @@ fun SerializationLab() {
             "enforce strict ObjectInputFilter allow-lists.",
     ) {
         LabField(blob, { blob = it }, "Base64 Java ObjectInputStream blob")
-        GhostButton("Generate serialized admin payload (test helper)") {
-            blob = UnsafeDeserializer.serializeToBase64(SessionTokenParcel("admin", isSuperAdmin = true))
-        }
         GhostButton("Reset to guest stream") {
             blob = UnsafeDeserializer.serializeToBase64(SessionTokenParcel("guest", isSuperAdmin = false))
             ok = false
@@ -81,7 +78,7 @@ fun SerializationLab() {
                     output = "Deserialized: $parsed\nSuperAdmin gadget triggered!\nFlag: ${Flags.SERIALIZATION}"
                 } else {
                     ok = false
-                    output = "Deserialized: $parsed\n(isSuperAdmin is false; flip the boolean byte in the stream)"
+                    output = "Deserialized: $parsed\nAccess level: standard user."
                 }
             }.onFailure {
                 ok = false
